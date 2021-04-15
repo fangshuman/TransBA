@@ -1,0 +1,12 @@
+__pycache__
+.ipynb_checkpoints/
+output/
+output_log/
+data/
+dataset_1000/
+cmd.sh
+load_image.ipynb
+mkdir.py
+run.sh
+val_rs.csv
+
