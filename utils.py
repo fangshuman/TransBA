@@ -3,6 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+def _batch_multiply_tensor_by_vector(vector, batch_tensor):
+    return (batch_tensor.transpose(0, -1) * vector).transpose(0, -1).contiguous()
+
 def batch_multiply(float_or_vector, tensor):
     if isinstance(float_or_vector, torch.Tensor):
         assert len(float_or_vector) == len(tensor)

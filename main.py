@@ -1,11 +1,12 @@
-import argparse
 import os
+import argparse
+import logging
 import ipdb
 
+import numpy as np
 import torch
 import torch.nn as nn 
 from torchvision import transforms
-from datetime import datetime
 
 from get_model import make_model
 from dataset import make_loader, save_image
@@ -24,11 +25,13 @@ attack_methods = [
     'ti-fgsm',
     'di-fgsm',
     'mi-fgsm',
-    'si-fgsm',
-    'admix', 
-    'emi-fgsm', 
-    'vi-fgsm', 
-    'pi-fgsm', 
+    #'si-fgsm',
+    #'admix', 
+    #'emi-fgsm', 
+    #'vi-fgsm', 
+    #'pi-fgsm', 
+    'TAP',
+    'Ghost',
     'SGM',
     'LinBP',
 ]
@@ -50,7 +53,7 @@ parser.add_argument('--total-num', type=int, default=1000,
 parser.add_argument('--arch', default='vgg16', help='source model', choices=model_names)
 parser.add_argument('--batch-size', type=int, default=64, 
                     help='input batch size for adversarial attack')
-parser.add_argument('--targeted', help='targeted attack', action='store_true')
+parser.add_argument('--target', help='targeted attack', action='store_true')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
 parser.add_argument('--attack-method', default='i-fgsm', choices=attack_methods,
@@ -69,8 +72,21 @@ use_cuda = not args.no_cuda and torch.cuda.is_available()
 device = torch.device('cuda' if use_cuda else 'cpu')
 
 
-# add Module to normalize an image before entering model
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    format="[%(asctime)s] - %(message)s",
+    datefmt="%Y/%m/%d %H:%M:%S",
+    level=logging.INFO,
+    handlers=[
+        logging.FileHandler('output_log/' + args.attack_method + '/' + args.arch + '.log'),
+        logging.StreamHandler(),
+    ],
+)
+
+
+
 class Normalize(nn.Module):
+    """ Module to normalize an image before entering model """
     def __init__(self, mean, std):
         super(Normalize, self).__init__()
         self.mean = torch.tensor(mean)
@@ -80,27 +96,16 @@ class Normalize(nn.Module):
         return (x - self.mean.type_as(x)[None, :, None, None]) / self.std.type_as(x)[None, :, None, None]
 
 
-# generate and save adversarial example
-def generate_adversarial_example(model, data_loader, attacker, img_list, output_dir, total_num=1000):
+def generate_adversarial_example(model, data_loader, attacker, img_list, output_dir):
+    """ generate and save adversarial example """
     model.eval()
-    ori_correct = 0
-    #adv_correct = 0
 
     for i, (inputs, labels, indexs) in enumerate(data_loader):
         inputs = inputs.to(device)
         labels = labels.to(device)
-        with torch.no_grad():
-            output = model(inputs)
-            _, preds = torch.max(output, dim=1)
-            ori_correct += (preds == labels).sum().item()
-        
+
         # generate adversarial example
         inputs_adv = attacker.perturb(inputs, labels) 
-
-        #with torch.no_grad():
-        #    output = model(inputs_adv)
-        #    _, preds = torch.max(output, dim=1)
-        #    adv_correct += (preds == labels).sum().item()
         
         # save adversarial example
         save_image(inputs_adv.detach().cpu().numpy(), indexs, 
@@ -108,52 +113,57 @@ def generate_adversarial_example(model, data_loader, attacker, img_list, output_
         
         # print
         if i % args.print_freq == 0:
-            print(f'generating: [{i} / {len(data_loader)}]')
+            logger.info(f'generating: [{i} / {len(data_loader)}]')
 
-    timestamp = str(datetime.now())[:-7]
-    print(f'\nAttack finished at {timestamp}')
-    print(f'clean acc:  {ori_correct * 100.0 / total_num: .2f}%\n')
-    #print(f'attack acc: {adv_correct * 100.0 / total_num: .2f}%')
+    logger.info(f'Attack finished\n')
 
 
-# validate adversarial example
-def validate(model, val_loader, total_num=1000):
+def validate(model, val_loader, all_preds):
+    """ validate adversarial example """
     model.eval()
-    correct = 0
+    total_num = 0
+    suc = 0
+    acc = 0
 
     with torch.no_grad():
-        for i, (inputs, labels, _) in enumerate(val_loader):
+        for i, (inputs, labels, indexs) in enumerate(val_loader):
             inputs = inputs.to(device)
             labels = labels.to(device)
+            clean_preds = torch.from_numpy(all_preds[indexs]).to(device)
 
             output = model(inputs)
-            _, preds = torch.max(output, dim=1)
-            correct += (preds == labels).sum().item()
+            _, preds = torch.max(output.data, dim=1)
+            
+            suc += (preds != clean_preds).sum().item()
+            acc += (preds == labels).sum().item()
+            total_num += inputs.size(0)
 
-        timestamp = str(datetime.now())[:-7]
-        print(f'Evaluate finished at {timestamp}')
-        print(f'acc: {correct * 100.0 / total_num: .2f}%\n')
+    logger.info(f'suc: {suc * 100.0 / total_num:.2f}%\tacc: {acc * 100.0 / total_num:.2f}%\n')
 
 
-def main():
-    
-    # print args
-    timestamp = str(datetime.now())[:-7]
-    print(f'{timestamp}\nattacker:  {args.attack_method}\n'
-          f'model:     {args.arch}\n'
-          f'dataset:   ImageNet\n'
-          f'eps:       {args.epsilon}\n'
-          f'n_iter:    {args.num_steps}\n'
-          f'step_size: {args.step_size if args.step_size > 0 else args.epsilon/args.num_steps}\n')
 
+def main():    
     # create output directory
     if args.output_dir == '':
-        output_dir = 'output/' + args.attack_method + '-' + args.arch
+        output_dir = 'output/' + args.attack_method + '/' + args.arch
     else:
         output_dir = args.output_dir
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     
+    # setting
+    epsilon = args.epsilon / 255.0
+    if args.step_size < 0:
+        step_size = epsilon / args.num_steps
+    else:
+        step_size = args.step_size / 255.0
+
+    logger.info(f'\nmodel:     {args.arch}\n'
+                f'dataset:   ImageNet\n'
+                f'eps:       {args.epsilon}\n'
+                f'n_iter:    {args.num_steps}\n'
+                f'step_size: {args.step_size if args.step_size > 0 else args.epsilon / args.num_steps}\n') 
+
     # create model
     model = make_model(arch=args.arch)
     size = model.input_size[1]
@@ -167,22 +177,15 @@ def main():
                                         total=args.total_num,
                                         size=size)
 
-    # create adversarial
-    epsilon = args.epsilon / 255.0
-    if args.step_size < 0:
-        step_size = epsilon / args.num_steps
-    else:
-        step_size = args.step_size / 255.0
-    
+    logger.info(f'Attack with {args.attack_method}...')
     attacker = Attacker(args.attack_method, 
                         predict=model, 
                         loss_fn=nn.CrossEntropyLoss(),
                         eps=epsilon, nb_iter=args.num_steps, eps_iter=step_size,
-                        targeted=False)
+                        target=False)
     generate_adversarial_example(model=model, data_loader=data_loader, 
                                  attacker=attacker, 
-                                 img_list=img_list, output_dir=output_dir,
-                                 total_num=args.total_num)
+                                 img_list=img_list, output_dir=output_dir)
     
     # validate
     if args.valid:
@@ -192,14 +195,17 @@ def main():
             t_model = nn.Sequential(Normalize(mean=t_model.mean, std=t_model.std), t_model)
             t_model = t_model.to(device)
 
+            all_preds = np.load(os.path.join('./model_preds', model_name + '.npy'),allow_pickle=True)[()]
+
             _, val_loader = make_loader(root_dir=output_dir,
                                         phase='val',
                                         batch_size=eval_batch_size[model_name],
                                         total=args.total_num,
                                         size=t_size)
             
-            print(f'attack {model_name}...')
-            validate(t_model, val_loader, total_num=args.total_num)
+            logger.info(f'Transfer to {model_name}...')
+            validate(t_model, val_loader, all_preds)
+
 
 
 if __name__ == '__main__':
