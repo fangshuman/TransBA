@@ -8,80 +8,53 @@ import torch
 import torch.nn as nn 
 from torchvision import transforms
 
-from get_model import make_model
+import configs
+from utils import Parameters
+from models import make_model
 from dataset import make_loader, save_image
-from attacker import Attacker
+from attacks import get_attack
 
 
-model_names = [
-    'vgg16',
-    'resnet50', 'resnet101', 'resnet152',
-    'densenet121', 'densenet161', 'densenet201',
-    'inceptionv3', 'inceptionv4', 'inceptionresnetv2',
-]
 
-attack_methods = [
-    'i-fgsm',
-    'ti-fgsm',
-    'di-fgsm',
-    'mi-fgsm',
-    #'si-fgsm',
-    #'admix', 
-    #'emi-fgsm', 
-    #'vi-fgsm', 
-    #'pi-fgsm', 
-    'TAP',
-    'Ghost',
-    'SGM',
-    'LinBP',
-]
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', type=str, default='')
+    #parser.add_argument('--dataset', type=str)
+    parser.add_argument('--input-dir', type=str, default='dataset_1000')
+    #parser.add_argument('--output-dir', type=str)
+    parser.add_argument('--attack-method',type=str, default='i_fgsm', choices=configs.attack_methods)
+    #parser.add_argument('--source-model', type=str, default='vgg16', choices=configs.source_model_names)
+    #parser.add_argument('--target-model', type=str, choices=target_model_names)
+    parser.add_argument('--batch-size', type=int)
+    parser.add_argument('--total-num', type=int, default=1000)
+    parser.add_argument('--target', action='store_true', help='targeted attack',)
+    parser.add_argument('--no-cuda', action='store_true', help='disables CUDA training')
+    parser.add_argument('--eps', type=float)
+    parser.add_argument('--nb-iter', type=int)
+    parser.add_argument('--eps-iter', type=float)
+    parser.add_argument('--kernlen', type=int, help='for ti-fgsm')
+    parser.add_argument('--nsig', type=int, help='for ti-fgsm')
+    parser.add_argument('--prob', type=float, help='for di-fgsm')
+    parser.add_argument('--decay-factor', type=float, help='for mi-fgsm')
+    parser.add_argument('--gamma', type=float, help='for sgm')
+    parser.add_argument('--print-freq', type=int, default=1, help='print frequency')
+    parser.add_argument('--valid', help='validate adversarial example', action='store_true')
+    
+    args = parser.parse_args()
 
-eval_batch_size = {
-    'vgg16': 128,
-    'resnet50': 256, 'resnet101': 128, 'resnet152': 64,
-    'densenet121': 256, 'densenet161': 128, 'densenet201': 128,
-    'inceptionv3': 128, 'inceptionv4': 128, 'inceptionresnetv2': 128,
-}
+    try:
+        config = getattr(configs, args.attack_method + '_config')
+        args = vars(args)
+        args = {**config, **{k: args[k] for k in args if args[k] is not None}}
+        args = Parameters(args)
+    except Exception:
+        raise NotImplementedError(f"No such configuration: {args.config}")
 
+    if not os.path.exists(os.path.join('output', args.attack_method)):
+        os.mkdir(os.path.join('output', args.attack_method))
+    args.output_dir = os.path.join('output', args.attack_method)
 
-parser = argparse.ArgumentParser(description='Pytorch ImageNet Untargeted Attack')
-parser.add_argument('--input-dir', default='./dataset_1000', 
-                    help='input root directory')
-parser.add_argument('--output-dir', default='', help='output root directory')
-parser.add_argument('--total-num', type=int, default=1000,
-                    help='number of images to attack')
-parser.add_argument('--arch', default='vgg16', help='source model', choices=model_names)
-parser.add_argument('--batch-size', type=int, default=64, 
-                    help='input batch size for adversarial attack')
-parser.add_argument('--target', help='targeted attack', action='store_true')
-parser.add_argument('--no-cuda', action='store_true', default=False,
-                    help='disables CUDA training')
-parser.add_argument('--attack-method', default='i-fgsm', choices=attack_methods,
-                    help='attack method')
-parser.add_argument('--epsilon', type=float, default=16, help='perturbation')
-parser.add_argument('--num-steps', type=int, default=10, help='perturb number of steps')
-parser.add_argument('--step-size', type=float, default=-1, 
-                    help='perturb step size, equivalent to epsilon/num_steps when setting -1')
-parser.add_argument('--print-freq', type=int, default=1, help='print frequency')
-parser.add_argument('--valid', help='validate adversarial example', action='store_true')
-
-args = parser.parse_args()
-
-
-use_cuda = not args.no_cuda and torch.cuda.is_available()
-device = torch.device('cuda' if use_cuda else 'cpu')
-
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    format="[%(asctime)s] - %(message)s",
-    datefmt="%Y/%m/%d %H:%M:%S",
-    level=logging.INFO,
-    handlers=[
-        logging.FileHandler('output_log/' + args.attack_method + '/' + args.arch + '.log'),
-        logging.StreamHandler(),
-    ],
-)
+    return args
 
 
 
@@ -97,7 +70,6 @@ class Normalize(nn.Module):
 
 
 def generate_adversarial_example(model, data_loader, attacker, img_list, output_dir):
-    """ generate and save adversarial example """
     model.eval()
 
     for i, (inputs, labels, indexs) in enumerate(data_loader):
@@ -111,15 +83,11 @@ def generate_adversarial_example(model, data_loader, attacker, img_list, output_
         save_image(inputs_adv.detach().cpu().numpy(), indexs, 
                    img_list=img_list, output_dir=output_dir)
         
-        # print
-        if i % args.print_freq == 0:
-            logger.info(f'generating: [{i} / {len(data_loader)}]')
 
     logger.info(f'Attack finished\n')
 
 
 def validate(model, val_loader, all_preds):
-    """ validate adversarial example """
     model.eval()
     total_num = 0
     suc = 0
@@ -142,43 +110,74 @@ def validate(model, val_loader, all_preds):
 
 
 
-def main():    
-    # create output directory
-    if args.output_dir == '':
-        output_dir = 'output/' + args.attack_method + '/' + args.arch
-    else:
-        output_dir = args.output_dir
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
-    
-    # setting
-    epsilon = args.epsilon / 255.0
-    if args.step_size < 0:
-        step_size = epsilon / args.num_steps
-    else:
-        step_size = args.step_size / 255.0
+def _main():    
+    args = get_args()
 
-    logger.info(f'\nmodel:     {args.arch}\n'
-                f'dataset:   ImageNet\n'
-                f'eps:       {args.epsilon}\n'
-                f'n_iter:    {args.num_steps}\n'
-                f'step_size: {args.step_size if args.step_size > 0 else args.epsilon / args.num_steps}\n') 
+    use_cuda = not args.no_cuda and torch.cuda.is_available()
+    device = torch.device('cuda' if use_cuda else 'cpu')
+
+    if os.path.exists(os.path.join('output_log', args.attack_method + 'log')):
+        os.remove(os.path.join('output_log', args.attack_method))
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(
+        format="[%(asctime)s] - %(message)s",
+        datefmt="%Y/%m/%d %H:%M:%S",
+        level=logging.INFO,
+        handlers=[
+            logging.FileHandler(os.path.join('output_log', args.attack_method + '.log')),
+            logging.StreamHandler(),
+        ],
+    )
+
+
+    for source_model_name in configs.source_model_names:
+        # create model
+        model = make_model(arch=source_model_name)
+        size = model.input_size[1]
+        model = nn.Sequential(Normalize(mean=model.mean, std=model.std), model)
+        model = model.to(device)
+
+        # create dataloader
+        img_list, data_loader = make_loader(image_dir=args.iuput_dir,
+                                            label_dir='imagenet_class_to_idx.npy', 
+                                            phase='cln',
+                                            batch_size=args.batch_size,
+                                            total=args.total_num,
+                                            size=size)
+
+        logger.info(f'Attack with {args.attack_method}..')
+        attack = get_attack(attack=args.attack_method, 
+                            model=model, 
+                            loss_fn=nn.CrossEntropyLoss(),
+                            args=args)
+        generate_adversarial_example(model=model,
+                                     data_loader=data_loader,
+                                     attacker=attack,
+                                     img_list=img_list,
+                                     output_dir=args.output_dir)
+        
+        # validate
+
+
+    '''
+    logger.info(f'Source Model: {args.source_model}\n') 
 
     # create model
-    model = make_model(arch=args.arch)
+    model = make_model(arch=source_model_name)
     size = model.input_size[1]
     model = nn.Sequential(Normalize(mean=model.mean, std=model.std), model)
     model = model.to(device)
 
     # create dataloader
-    img_list, data_loader = make_loader(root_dir=args.input_dir, 
+    img_list, data_loader = make_loader(image_dir=image_dir,
+                                        label_dir=label_dir, 
                                         phase='att',
-                                        batch_size=args.batch_size,
-                                        total=args.total_num,
+                                        batch_size=batch_size,
+                                        total=total_num,
                                         size=size)
 
-    logger.info(f'Attack with {args.attack_method}...')
-    attacker = Attacker(args.attack_method, 
+    logger.info(f'Attack with {attack_method}..')
+    attacker = Attacker(attack_method=attack_method, 
                         predict=model, 
                         loss_fn=nn.CrossEntropyLoss(),
                         eps=epsilon, nb_iter=args.num_steps, eps_iter=step_size,
@@ -205,7 +204,7 @@ def main():
             
             logger.info(f'Transfer to {model_name}...')
             validate(t_model, val_loader, all_preds)
-
+    '''
 
 
 if __name__ == '__main__':

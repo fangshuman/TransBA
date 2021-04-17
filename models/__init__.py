@@ -25,7 +25,7 @@ def make_model(arch):
     elif arch == 'inceptionresnetv2':
         model = inceptionresnetv2()
     else:
-        raise ValueError(f'Unknown arch {arch}')
+        raise NotImplementedError(f"No such model: {arch}")
     
     # for inception* networks
     # model.input_size=[3, 299, 299]

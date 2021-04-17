@@ -3,6 +3,19 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+class Parameters:
+    def __init__(self, params):
+        for k, v in params.items():
+            self.__setattr__(k, v)
+
+    def __setattr__(self, key, value):
+        self.__dict__[key.lower()] = value
+
+    def __repr__(self):
+        return repr(self.__dict__)
+
+        
+'''
 def _batch_multiply_tensor_by_vector(vector, batch_tensor):
     return (batch_tensor.transpose(0, -1) * vector).transpose(0, -1).contiguous()
 
@@ -27,3 +40,4 @@ def normalize_by_pnorm(x, p=2, small_constant=1e-6):
     norm = _get_norm_batch(x, p)
     norm = torch.max(norm, torch.ones_like(norm) * small_constant)
     return batch_multiply(1. / norm, x)
+'''

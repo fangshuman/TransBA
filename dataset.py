@@ -8,55 +8,59 @@ from PIL import Image
 
 
 class ImageNetDataset(torch.utils.data.Dataset):
-    def __init__(self, root_dir, phase, total=1000, size=224):
-        assert phase in ['att', 'val']
-        self.root_dir = root_dir
-        self.class_to_idx = np.load('imagenet_class_to_idx.npy', allow_pickle=True)[()]
-        self.image_list = os.listdir(root_dir)
+    def __init__(self, image_dir, label_dir, phase, total=1000, size=224):
+        assert phase in ['cln', 'adv']
+        self.image_dir = image_dir 
+        self.class_to_idx = np.load(label_dir, allow_pickle=True)[()]
+        self.image_list = os.listdir(image_dir)
         self.image_list.sort()
-        if phase == 'att':
+        self.phase = phase
+
+        if phase == 'cln':
             self.image_list = [item for item in self.image_list if 'JPEG' in item]
-        elif phase == 'val':
-            self.image_list = [item for item in self.image_list if 'png' in item]
-        assert len(self.image_list) == total
-        
-        # transform
-        if phase == 'att':
             self.transform = transforms.Compose([
                 transforms.Resize(int(size / 0.875)),
                 transforms.CenterCrop(size),
                 transforms.ToTensor()
             ])
-        elif phase == 'val':
+        elif phase == 'adv':
+            self.image_list = [item for item in self.image_list if 'png' in item]
             self.transform = transforms.Compose([
                 transforms.Resize(size),
                 transforms.ToTensor()
             ])
+        assert len(self.image_list) == total
+
 
     def __getitem__(self, index):
         image_path = self.image_list[index]
-        with open(os.path.join(self.root_dir, image_path), 'rb') as f:
+        with open(os.path.join(self.image_dir, image_path), 'rb') as f:
             with Image.open(f) as image:
                 image = image.convert('RGB')
         image = self.transform(image)
-        label = self.class_to_idx[self.image_list[index].split('_')[0]]
+        if self.phase == 'cln':
+            label = self.class_to_idx[self.image_list[index].split('_')[0]]
+        elif self.phase == 'adv':
+            label = self.class_to_idx[index]
         return image, label, index
+
 
     def __len__(self):
         return len(self.image_list)
 
 
-def make_loader(root_dir, phase, batch_size=1, total=1000, size=224):
+def make_loader(image_dir, label_dir, phase, batch_size=1, total=1000, size=224):
     """
     Args:
-        root_dir: input root directory
+        image_dir: image root directory
+        label_dir: label path
         batch_size: input batch size for adversarial attack
         total: the number of images to be attacked
         size: the size of input images
     Return:
-        dataloader
+        list, dataloader
     """
-    imgset = ImageNetDataset(root_dir, phase, total=total, size=size)
+    imgset = ImageNetDataset(image_dir, label_dir, phase, total=total, size=size)
     loader = torch.utils.data.DataLoader(
         imgset,
         batch_size=batch_size
