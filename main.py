@@ -13,6 +13,7 @@ from utils import Parameters
 from models import make_model
 from dataset import make_loader, save_image
 from attacks import get_attack
+from evaluate import predict
 
 
 
@@ -22,13 +23,13 @@ def get_args():
     #parser.add_argument('--dataset', type=str)
     parser.add_argument('--input-dir', type=str, default='dataset_1000')
     #parser.add_argument('--output-dir', type=str)
-    parser.add_argument('--attack-method',type=str, default='i_fgsm', choices=configs.attack_methods)
+    parser.add_argument('--attack-method',type=str, choices=configs.attack_methods)
     #parser.add_argument('--source-model', type=str, default='vgg16', choices=configs.source_model_names)
     #parser.add_argument('--target-model', type=str, choices=target_model_names)
     parser.add_argument('--batch-size', type=int)
     parser.add_argument('--total-num', type=int, default=1000)
     parser.add_argument('--target', action='store_true', help='targeted attack',)
-    parser.add_argument('--no-cuda', action='store_true', help='disables CUDA training')
+    #parser.add_argument('--no-cuda', action='store_true', help='disables CUDA training')
     parser.add_argument('--eps', type=float)
     parser.add_argument('--nb-iter', type=int)
     parser.add_argument('--eps-iter', type=float)
@@ -39,11 +40,12 @@ def get_args():
     parser.add_argument('--gamma', type=float, help='for sgm')
     parser.add_argument('--print-freq', type=int, default=1, help='print frequency')
     parser.add_argument('--valid', help='validate adversarial example', action='store_true')
+    parser.add_argument('--clean-pred', help='get prediction of clean examples', action='store_true')
     
     args = parser.parse_args()
 
     try:
-        config = getattr(configs, args.attack_method + '_config')
+        config = getattr(configs, args.config)
         args = vars(args)
         args = {**config, **{k: args[k] for k in args if args[k] is not None}}
         args = Parameters(args)
@@ -69,52 +71,84 @@ class Normalize(nn.Module):
         return (x - self.mean.type_as(x)[None, :, None, None]) / self.std.type_as(x)[None, :, None, None]
 
 
-def generate_adversarial_example(model, data_loader, attacker, img_list, output_dir):
+def attack_source_model(arch, args):
+    # create model
+    model = make_model(arch=arch)
+    size = model.input_size[1]
+    model = nn.Sequential(Normalize(mean=model.mean, std=model.std), model)
+    model = model.cuda()
+
+    # create dataloader
+    img_list, data_loader = make_loader(image_dir=args.iuput_dir,
+                                        label_dir='imagenet_class_to_idx.npy', 
+                                        phase='cln',
+                                        batch_size=configs.att_batch_size[arch],
+                                        total=args.total_num,
+                                        size=size)
+
+    # create attack
+    attack = get_attack(attack=args.attack_method, 
+                        model=model, 
+                        loss_fn=nn.CrossEntropyLoss(),
+                        args=args)
+
+    # generate adversarial example
     model.eval()
-
-    for i, (inputs, labels, indexs) in enumerate(data_loader):
-        inputs = inputs.to(device)
-        labels = labels.to(device)
-
-        # generate adversarial example
-        inputs_adv = attacker.perturb(inputs, labels) 
-        
-        # save adversarial example
-        save_image(inputs_adv.detach().cpu().numpy(), indexs, 
-                   img_list=img_list, output_dir=output_dir)
-        
-
-    logger.info(f'Attack finished\n')
-
-
-def validate(model, val_loader, all_preds):
-    model.eval()
-    total_num = 0
-    suc = 0
-    acc = 0
-
-    with torch.no_grad():
-        for i, (inputs, labels, indexs) in enumerate(val_loader):
-            inputs = inputs.to(device)
-            labels = labels.to(device)
-            clean_preds = torch.from_numpy(all_preds[indexs]).to(device)
-
-            output = model(inputs)
-            _, preds = torch.max(output.data, dim=1)
+    for i, (inputs, _, indexs) in enumerate(data_loader):
+        inputs = inputs.cuda()
             
-            suc += (preds != clean_preds).sum().item()
-            acc += (preds == labels).sum().item()
-            total_num += inputs.size(0)
+        output = model(inputs)
+        _, labels = torch.max(output, dim=1).item()
 
-    logger.info(f'suc: {suc * 100.0 / total_num:.2f}%\tacc: {acc * 100.0 / total_num:.2f}%\n')
+        inputs_adv = attack.perturb(inputs, labels) 
+            
+        # save adversarial example
+        save_image(images=inputs_adv.detach().cpu().numpy(), 
+                    indexs=indexs, 
+                    img_list=img_list, 
+                    output_dir=os.path.join(args.output_dir, arch))
+
+        if i % args.print_freq == 0:
+            print(f'generating: [{i} / {len(data_loader)}]')
+    
+
+def predict_model_with_clean_example(arch, args):
+    model = make_model(arch=arch)
+    size = model.input_size[1]
+    model = nn.Sequential(Normalize(mean=model.mean, std=model.std), model)
+    model = model.cuda()
+
+    _, data_loader = make_loader(image_dir=args.input_dir,
+                                 label_dir='imagenet_class_to_idx.npy', 
+                                 phase='cln',
+                                 batch_size=configs.val_batch_size[arch],
+                                 total=args.total_num,
+                                 size=size)
+    
+    _, _, preds_ls = predict(model, data_loader)
+    cln_preds = torch.cat(preds_ls).cpu().numpy()
+    np.save(os.path.join('output_clean_preds', arch + '.npy'), cln_preds)
 
 
+def valid_model_with_adversarial_example(arch, args):
+    model = make_model(arch=arch)
+    size = model.input_size[1]
+    model = nn.Sequential(Normalize(mean=model.mean, std=model.std), model)
+    model = model.cuda()
 
-def _main():    
+    _, data_loader = make_loader(image_dir=os.path.join(args.output_dir),
+                                 label_dir=os.path.join('output_clean_preds', arch + '.npy'), 
+                                 phase='att',
+                                 batch_size=configs.val_batch_size[arch], 
+                                 total=args.total_num,
+                                 size=size)
+    
+    cnt, total, _ = predict(model, data_loader)
+    return (1 - cnt) * 100.0 / total
+
+
+def main():    
     args = get_args()
-
-    use_cuda = not args.no_cuda and torch.cuda.is_available()
-    device = torch.device('cuda' if use_cuda else 'cpu')
 
     if os.path.exists(os.path.join('output_log', args.attack_method + 'log')):
         os.remove(os.path.join('output_log', args.attack_method))
@@ -129,82 +163,30 @@ def _main():
         ],
     )
 
+    if args.clean_pred:
+        for target_model_name in configs.target_model_names:
+            logger.info(f'Predict {target_model_name} with clean example..')
+            predict_model_with_clean_example(target_model_name, args)
+            logger.info('Predict done.')
 
-    for source_model_name in configs.source_model_names:
-        # create model
-        model = make_model(arch=source_model_name)
-        size = model.input_size[1]
-        model = nn.Sequential(Normalize(mean=model.mean, std=model.std), model)
-        model = model.to(device)
+    logger.info('Begin to generate adversarial examples in all source models.\n')
 
-        # create dataloader
-        img_list, data_loader = make_loader(image_dir=args.iuput_dir,
-                                            label_dir='imagenet_class_to_idx.npy', 
-                                            phase='cln',
-                                            batch_size=args.batch_size,
-                                            total=args.total_num,
-                                            size=size)
+    ipdb.set_trace()
+
+    for i, source_model_name in enumerate(configs.source_model_names):
+        logger.info(f'[{i} / {len(configs.source_model_names)}] source model: {source_model_name}')
 
         logger.info(f'Attack with {args.attack_method}..')
-        attack = get_attack(attack=args.attack_method, 
-                            model=model, 
-                            loss_fn=nn.CrossEntropyLoss(),
-                            args=args)
-        generate_adversarial_example(model=model,
-                                     data_loader=data_loader,
-                                     attacker=attack,
-                                     img_list=img_list,
-                                     output_dir=args.output_dir)
+        attack_source_model(source_model_name, args)
+        logger.info(f'Attack finished.\n')
         
         # validate
-
-
-    '''
-    logger.info(f'Source Model: {args.source_model}\n') 
-
-    # create model
-    model = make_model(arch=source_model_name)
-    size = model.input_size[1]
-    model = nn.Sequential(Normalize(mean=model.mean, std=model.std), model)
-    model = model.to(device)
-
-    # create dataloader
-    img_list, data_loader = make_loader(image_dir=image_dir,
-                                        label_dir=label_dir, 
-                                        phase='att',
-                                        batch_size=batch_size,
-                                        total=total_num,
-                                        size=size)
-
-    logger.info(f'Attack with {attack_method}..')
-    attacker = Attacker(attack_method=attack_method, 
-                        predict=model, 
-                        loss_fn=nn.CrossEntropyLoss(),
-                        eps=epsilon, nb_iter=args.num_steps, eps_iter=step_size,
-                        target=False)
-    generate_adversarial_example(model=model, data_loader=data_loader, 
-                                 attacker=attacker, 
-                                 img_list=img_list, output_dir=output_dir)
-    
-    # validate
-    if args.valid:
-        for model_name in model_names:
-            t_model = make_model(model_name)
-            t_size = t_model.input_size[1]
-            t_model = nn.Sequential(Normalize(mean=t_model.mean, std=t_model.std), t_model)
-            t_model = t_model.to(device)
-
-            all_preds = np.load(os.path.join('./model_preds', model_name + '.npy'),allow_pickle=True)[()]
-
-            _, val_loader = make_loader(root_dir=output_dir,
-                                        phase='val',
-                                        batch_size=eval_batch_size[model_name],
-                                        total=args.total_num,
-                                        size=t_size)
-            
-            logger.info(f'Transfer to {model_name}...')
-            validate(t_model, val_loader, all_preds)
-    '''
+        if args.valid:
+            for target_model_name in configs.target_model_names:
+                logger.info(f'Transfer to {target_model_name}..')
+                succ_rate = valid_model_with_adversarial_example(target_model_name, args)
+                logger.info(f'succ rate: {succ_rate:.2f}')
+                logger.info(f'Transfer done.')
 
 
 if __name__ == '__main__':

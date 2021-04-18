@@ -1,5 +1,17 @@
-# attack method config
+# attack method 
+attack_methods = [
+    'i_fgsm',
+    'ti_fgsm',
+    'di_fgsm',
+    'mi_fgsm',
+    'TAP',
+    'Ghost',
+    'SGM',
+    'LinBP',
+]
 
+
+# attack method config
 attack_base_config = {
     'eps': 16 / 255,
     'nb_iter': 10,

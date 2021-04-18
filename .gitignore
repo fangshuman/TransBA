@@ -3,6 +3,7 @@ __pycache__
 output/
 output_/
 output_log/
+output_clean_preds/
 data/
 
 cmd.sh
@@ -11,21 +12,9 @@ run.sh
 load_image.ipynb
 model_structure.ipynb
 get_model_preds.py
-evaluate.py
 
 mkdir.py
 
 val_rs.csv
 
-model_preds/vgg16.npy
-model_preds/resnet50.npy
-model_preds/resnet101.npy
-model_preds/resnet152.npy
-model_preds/densenet121.npy
-model_preds/densenet169.npy
-model_preds/densenet201.npy
-model_preds/densenet161.npy
-model_preds/inceptionv3.npy
-model_preds/inceptionv4.npy
-model_preds/inceptionresnetv2.npy
 

@@ -82,6 +82,35 @@ class TI_FGSM_Attack(Attack):
 
 
 
+class DI_FGSM_Attack(Attack):
+    def __init__(self, model, loss_fn, eps=0.05, nb_iter=10, eps_iter=0.005, prob=0.5, target=False):
+        super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, target=target)
+        self.prob = prob
+
+    def perturb(self, x, y):
+        def input_diversity(img):
+            size = x.size(1)
+            resize = int(size / 0.875)
+
+            gg = torch.rand(0, 1, (1,)).item()
+            if gg >= prob:
+                return img
+            else:
+                rnd = torch.randint(size, resize + 1, (1,)).item()
+                rescaled = F.interpolate(img, (rnd, rnd), mode = 'nearest')
+                h_rem = resize - rnd
+                w_hem = resize - rnd
+                pad_top = torch.randint(0, h_rem + 1, (1,)).item()
+                pad_bottom = h_rem - pad_top
+                pad_left = torch.randint(0, w_hem + 1, (1,)).item()
+                pad_right = w_hem - pad_left
+                padded = F.pad(rescaled, pad = (pad_left, pad_right, pad_top, pad_bottom))
+                padded = F.interpolate(padded, (size, size), mode = 'nearest')
+                return padded
+        return super().perturb(input_diversity(x), y)
+
+
+
 class MI_FGSM_Attack(Attack):
     def __init__(self, model, loss_fn, eps=0.05, nb_iter=10, eps_iter=0.005, decay_factor=0.5, target=False):
         super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, target=target)
@@ -120,6 +149,7 @@ class MI_FGSM_Attack(Attack):
     
         x_adv = torch.clamp(x + delta, 0., 1.)
         return x_adv
+
 
 
 

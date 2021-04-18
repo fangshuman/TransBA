@@ -14,8 +14,8 @@ def make_model(arch):
         model = resnet152()
     elif arch == 'densenet121':
         model = densenet121()
-    elif arch == 'densenet161':
-        model = densenet161()
+    elif arch == 'densenet169':
+        model = densenet169()
     elif arch == 'densenet201':
         model = densenet201()
     elif arch == 'inceptionv3':
@@ -55,8 +55,8 @@ def resnet152():
 def densenet121():
     return pretrainedmodels.densenet121(num_classes=1000, pretrained='imagenet')
 
-def densenet161():
-    return pretrainedmodels.densenet161(num_classes=1000, pretrained='imagenet')
+def densenet169():
+    return pretrainedmodels.densenet169(num_classes=1000, pretrained='imagenet')
 
 def densenet201():
     return pretrainedmodels.densenet201(num_classes=1000, pretrained='imagenet')
