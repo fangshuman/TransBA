@@ -1,19 +1,11 @@
 __pycache__
 .ipynb_checkpoints/
 output/
-output_/
 output_log/
 output_clean_preds/
 data/
 
-cmd.sh
 run.sh
-
-load_image.ipynb
-model_structure.ipynb
-get_model_preds.py
-
-mkdir.py
 
 val_rs.csv
 

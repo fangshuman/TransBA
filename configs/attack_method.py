@@ -20,24 +20,24 @@ attack_base_config = {
 
 i_fgsm_config = {
     **attack_base_config,
-    'attack_method': 'i-fgsm',
+    'attack_method': 'i_fgsm',
 }
 
 ti_fgsm_config = {
     **attack_base_config,
-    'attack_method': 'ti-fgsm',
+    'attack_method': 'ti_fgsm',
     'kernlen': 7,
     'nsig': 3,
 }
 
 di_fgsm_config = {
     **attack_base_config,
-    'attack_method': 'di-fgsm',
+    'attack_method': 'di_fgsm',
     'prob': 0.5,
 }
 
 mi_fgsm_config = {
     **attack_base_config,
-    'attack_method': 'mi-fgsm',
+    'attack_method': 'mi_fgsm',
     'decay_factor': 1.0,
 }

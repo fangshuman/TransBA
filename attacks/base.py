@@ -20,8 +20,8 @@ class Attack(object):
     
         for i in range(self.nb_iter):
             outputs = self.model(x + delta)
-            loss = loss_fn(outputs, y)
-            if target:
+            loss = self.loss_fn(outputs, y)
+            if self.target:
                 loss = -loss
         
             loss.backward()
@@ -45,17 +45,17 @@ class I_FGSM_Attack(Attack):
 
 
 class TI_FGSM_Attack(Attack):
-    def __init__(self, model, loss_fn, eps=0.05, nb_iter=10, eps_iter=0.005, kerlen=7, nsig=3, target=False):
+    def __init__(self, model, loss_fn, eps=0.05, nb_iter=10, eps_iter=0.005, kernlen=7, nsig=3, target=False):
         super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, target=target)
-        self.kernlen = kerlen
+        self.kernlen = kernlen
         self.nsig = nsig
 
     def perturb(self, x, y):
         # define Gaussian kernel
-        kern1d = st.norm.pdf(np.linspace(-nsig, nsig, kernlen))
+        kern1d = st.norm.pdf(np.linspace(-self.nsig, self.nsig, self.kernlen))
         kernel = np.outer(kern1d, kern1d)
         kernel = kernel / kernel.sum()
-        kernel = torch.FloatTensor(kernel).expand(x.size(1), x.size(1), kernlen, kernlen)
+        kernel = torch.FloatTensor(kernel).expand(x.size(1), x.size(1), self.kernlen, self.kernlen)
         kernel = kernel.to(x.device)
     
         delta = torch.zeros_like(x)
@@ -70,7 +70,7 @@ class TI_FGSM_Attack(Attack):
         
             loss.backward()
 
-            grad_sign = (F.conv2d(delta.grad.data, kernel, padding=kernlen//2)).sign()
+            grad_sign = (F.conv2d(delta.grad.data, kernel, padding=self.kernlen//2)).sign()
             delta.data = delta.data + self.eps_iter * grad_sign
             delta.data = torch.clamp(delta.data, -self.eps, self.eps)
             delta.data = torch.clamp(x.data + delta, 0., 1.) - x
@@ -89,11 +89,11 @@ class DI_FGSM_Attack(Attack):
 
     def perturb(self, x, y):
         def input_diversity(img):
-            size = x.size(1)
+            size = x.size(2)
             resize = int(size / 0.875)
 
-            gg = torch.rand(0, 1, (1,)).item()
-            if gg >= prob:
+            gg = torch.rand(1).item()
+            if gg >= self.prob:
                 return img
             else:
                 rnd = torch.randint(size, resize + 1, (1,)).item()
@@ -107,6 +107,7 @@ class DI_FGSM_Attack(Attack):
                 padded = F.pad(rescaled, pad = (pad_left, pad_right, pad_top, pad_bottom))
                 padded = F.interpolate(padded, (size, size), mode = 'nearest')
                 return padded
+                
         return super().perturb(input_diversity(x), y)
 
 
@@ -138,7 +139,7 @@ class MI_FGSM_Attack(Attack):
         
             loss.backward()
 
-            g = decay_factor * g + normalize_by_pnorm(delta.grad, p=1)
+            g = self.decay_factor * g + normalize_by_pnorm(delta.grad, p=1)
 
             g_sign = torch.sign(g)
             delta.data = delta.data + self.eps_iter * g_sign

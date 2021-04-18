@@ -12,11 +12,11 @@ source_model_names = [
 # source model batch size
 att_batch_size = {
     'vgg16': 32,
-    'resnet50': 64,
-    'densenet121': 64,
-    'inceptionv3': 64,
-    'inceptionv4': 32,
-    'inceptionresnetv2': 32,
+    'resnet50': 32,
+    'densenet121': 32,
+    'inceptionv3': 32,
+    'inceptionv4': 16,
+    'inceptionresnetv2': 16,
 }
 
 

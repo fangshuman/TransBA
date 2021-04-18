@@ -15,8 +15,16 @@ def get_attack(attack, model, loss_fn, args):
                               eps=args.eps,
                               nb_iter=args.nb_iter,
                               eps_iter=args.eps_iter,
-                              kerlen=args.kernlen,
+                              kernlen=args.kernlen,
                               nsig=args.nsig,
+                              target=args.target)
+    elif attack == 'di_fgsm':
+        return DI_FGSM_Attack(model=model, 
+                              loss_fn=loss_fn,
+                              eps=args.eps,
+                              nb_iter=args.nb_iter,
+                              eps_iter=args.eps_iter,
+                              prob=args.prob,
                               target=args.target)
     elif attack == 'mi_fgsm':
         return MI_FGSM_Attack(model=model, 
