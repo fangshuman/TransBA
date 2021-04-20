@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import scipy.stats as st
 
 
-class Attack(object):
+class I_FGSM_Attack(object):
     def __init__(self, model, loss_fn, eps=0.05, nb_iter=10, eps_iter=0.005, target=False):
         self.model = model
         self.loss_fn = loss_fn
@@ -38,13 +38,7 @@ class Attack(object):
 
 
 
-class I_FGSM_Attack(Attack):
-    def __init__(self, model, loss_fn, eps=0.05, nb_iter=10, eps_iter=0.005, target=False):
-        super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, target=target)
-
-
-
-class TI_FGSM_Attack(Attack):
+class TI_FGSM_Attack(I_FGSM_Attack):
     def __init__(self, model, loss_fn, eps=0.05, nb_iter=10, eps_iter=0.005, kernlen=7, nsig=3, target=False):
         super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, target=target)
         self.kernlen = kernlen
@@ -59,7 +53,6 @@ class TI_FGSM_Attack(Attack):
         kernel = kernel.to(x.device)
     
         delta = torch.zeros_like(x)
-        delta = nn.Parameter(delta)
         delta.requires_grad_()
 
         for i in range(self.nb_iter):
@@ -82,7 +75,7 @@ class TI_FGSM_Attack(Attack):
 
 
 
-class DI_FGSM_Attack(Attack):
+class DI_FGSM_Attack(I_FGSM_Attack):
     def __init__(self, model, loss_fn, eps=0.05, nb_iter=10, eps_iter=0.005, prob=0.5, target=False):
         super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, target=target)
         self.prob = prob
@@ -107,12 +100,31 @@ class DI_FGSM_Attack(Attack):
                 padded = F.pad(rescaled, pad = (pad_left, pad_right, pad_top, pad_bottom))
                 padded = F.interpolate(padded, (size, size), mode = 'nearest')
                 return padded
-                
-        return super().perturb(input_diversity(x), y)
+
+        delta = torch.zeros_like(x)
+        delta.requires_grad_()
+    
+        for i in range(self.nb_iter):
+            outputs = self.model(input_diversity(x + delta))
+            loss = self.loss_fn(outputs, y)
+            if self.target:
+                loss = -loss
+        
+            loss.backward()
+
+            grad_sign = delta.grad.data.sign()
+            delta.data = delta.data + self.eps_iter * grad_sign
+            delta.data = torch.clamp(delta.data, -self.eps, self.eps)
+            delta.data = torch.clamp(x.data + delta, 0., 1.) - x
+
+            delta.grad.data.zero_()
+    
+        x_adv = torch.clamp(x + delta, 0., 1.)
+        return x_adv
 
 
 
-class MI_FGSM_Attack(Attack):
+class MI_FGSM_Attack(I_FGSM_Attack):
     def __init__(self, model, loss_fn, eps=0.05, nb_iter=10, eps_iter=0.005, decay_factor=0.5, target=False):
         super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, target=target)
         self.decay_factor = decay_factor
@@ -126,7 +138,6 @@ class MI_FGSM_Attack(Attack):
             return (x.transpose(0, -1) * (1. / norm)).transpose(0, -1).contiguous()
         
         delta = torch.zeros_like(x)
-        delta = nn.Parameter(delta)
         delta.requires_grad_()
 
         g = torch.zeros_like(x)

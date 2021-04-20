@@ -1,10 +1,16 @@
 __pycache__
 .ipynb_checkpoints/
 output/
+output_5000/
 output_log/
-output_clean_preds/
+output_clean_preds_1000/
+output_clean_preds_5000/
 data/
+dataset_1000/
+dataset_5000/
 
 *.sh
 *.csv
 *.txt
+*.log
+

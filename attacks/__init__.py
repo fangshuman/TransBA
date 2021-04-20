@@ -39,7 +39,7 @@ def get_attack(attack, model_name, model, loss_fn, args):
                               decay_factor=args.decay_factor,
                               target=args.target)
 
-    elif attack == 'sgm':
+    elif attack == 'SGM':
         if 'vgg' in model_name:
             return SGM_Attack_for_VGG(model=model, 
                                       loss_fn=loss_fn,
@@ -91,5 +91,8 @@ def get_attack(attack, model_name, model, loss_fn, args):
         else:
             raise NotImplementedError("Current code only supports vgg/resnet/densenet/inc_v3/inc_v4/inc_resv2. Please check souce model name.")
     
+    elif attack == 'LinBP':
+        pass
+
     else:
         raise NotImplementedError(f"No such attack method: {attack}")

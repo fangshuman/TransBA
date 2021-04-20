@@ -17,6 +17,8 @@ def wrap(model):
 def make_model(arch):
     if arch == 'vgg16':
         model = vgg16_bn(num_classes=1000, pretrained='imagenet')
+    elif arch == 'vgg19':
+        model = vgg19_bn(num_classes=1000, pretrained='imagenet')
     elif arch == 'resnet50':
         model = resnet50(num_classes=1000, pretrained='imagenet')
     elif arch == 'resnet101':
@@ -35,11 +37,13 @@ def make_model(arch):
         model = inceptionv4(num_classes=1000, pretrained='imagenet')
     elif arch == 'inceptionresnetv2':
         model = inceptionresnetv2(num_classes=1000, pretrained='imagenet')
+    elif arch == 'resnet152':
+        model = resnet152(num_classes=1000, pretrained='imagenet')
     else:
         raise NotImplementedError(f"No such model: {arch}")                       
 
     return wrap(model)
-    #return model
+
 
 
 if __name__ == "__main__":

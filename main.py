@@ -2,6 +2,7 @@ import os
 import argparse
 import logging
 import ipdb
+from datetime import datetime
 
 import numpy as np
 import torch
@@ -49,9 +50,10 @@ def get_args():
     except Exception:
         raise NotImplementedError(f"No such configuration: {args.config}")
 
-    if not os.path.exists(os.path.join('output', args.attack_method)):
-        os.mkdir(os.path.join('output', args.attack_method))
-    args.output_dir = os.path.join('output', args.attack_method)
+    output_dir = os.path.join('output', args.attack_method)
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+    args.output_dir = output_dir
 
     return args
 
@@ -100,25 +102,30 @@ def attack_source_model(arch, args):
                         loss_fn=nn.CrossEntropyLoss(),
                         args=args)
 
+    adv_images_dir = os.path.join(args.output_dir, f'{arch}_gamma{args.gamma}')
+    #adv_images_dir = os.path.join(args.output_dir, arch)
+    if not os.path.exists(adv_images_dir):
+        os.mkdir(adv_images_dir)
+
     # generate adversarial example
     model.eval()
     if args.gamma < 1.0:  # use Skip Gradient Method (SGM)
         attack.register_hook()
-    for i, (inputs, _, indexs) in enumerate(data_loader):
+    for i, (inputs, labels, indexs) in enumerate(data_loader):
         inputs = inputs.cuda()
+        labels = labels.cuda()
             
         output = model(inputs)
-        _, labels = torch.max(output, dim=1)
+        _, preds = torch.max(output, dim=1)
 
-        inputs_adv = attack.perturb(inputs, labels) 
+        #inputs_adv = attack.perturb(inputs, labels) 
+        inputs_adv = attack.perturb(inputs, preds) 
             
         # save adversarial example
-        if not os.path.exists(os.path.join(args.output_dir, arch)):
-            os.mkdir(os.path.join(args.output_dir, arch))
         save_image(images=inputs_adv.detach().cpu().numpy(), 
                    indexs=indexs, 
                    img_list=img_list, 
-                   output_dir=os.path.join(args.output_dir, arch))
+                   output_dir=adv_images_dir)
 
         if i % args.print_freq == 0:
             print(f'generating: [{i} / {len(data_loader)}]')
@@ -146,9 +153,9 @@ def valid_model_with_adversarial_example(source_arch, target_arch, args):
     size = model.input_size[1]
     model = model.cuda()
 
-    _, data_loader = make_loader(#image_dir=os.path.join(args.output_dir, source_arch),
-                                 image_dir='../trans/skip-connections-matter-master/adv_images_resnet50',                          
-                                 label_dir=os.path.join('output_clean_preds', target_arch + '.npy'), 
+    _, data_loader = make_loader(image_dir=os.path.join(args.output_dir, source_arch),
+                                 #image_dir=os.path.join(args.output_dir, f'{arch}_gamma{args.gamma}'),                         
+                                 label_dir=os.path.join('output_clean_preds_1000', target_arch + '.npy'), 
                                  phase='adv',
                                  batch_size=configs.val_batch_size[target_arch], 
                                  total=args.total_num,
@@ -161,20 +168,23 @@ def valid_model_with_adversarial_example(source_arch, target_arch, args):
 def main():    
     args = get_args()
     
-    if os.path.exists(os.path.join('output_log', args.attack_method + '.log')):
-        os.remove(os.path.join('output_log', args.attack_method + '.log'))
+    logger_path = os.path.join('output_log', args.attack_method + '.log')
+    #logger_path = os.path.join('output_log', 'sgm_densenet121_prediction.log')
+    #if os.path.exists(logger_path):
+    #    os.remove(logger_path)
     logger = logging.getLogger(__name__)
     logging.basicConfig(
         format="[%(asctime)s] - %(message)s",
         datefmt="%Y/%m/%d %H:%M:%S",
         level=logging.INFO,
         handlers=[
-            #logging.FileHandler(os.path.join('output_log', args.attack_method + '.log')),
-            logging.FileHandler(os.path.join('output_log', 'sgm_resnet50.log')),
+            logging.FileHandler(logger_path),
             logging.StreamHandler(),
         ],
     )
-    '''
+    logger.info(str(datetime.now())[:-7])
+    logger.info(args)
+    
     if args.clean_pred:
         for target_model_name in configs.target_model_names:
             logger.info(f'Predict {target_model_name} with clean example..')
@@ -182,7 +192,7 @@ def main():
             logger.info('Predict done.')
         
     logger.info(f'Generate adversarial examples with {args.attack_method}')
-    
+
     for i, source_model_name in enumerate(configs.source_model_names):
         logger.info('-' * 50)
         logger.info(f'[{i+1} / {len(configs.source_model_names)}] source model: {source_model_name}')
@@ -197,14 +207,14 @@ def main():
                 succ_rate = valid_model_with_adversarial_example(source_model_name, target_model_name, args)
                 logger.info(f'succ rate: {succ_rate:.2f}%')
                 logger.info(f'Transfer done.')
+    
     '''
     for target_model_name in configs.target_model_names:
         logger.info(f'Transfer to {target_model_name}..')
         succ_rate = valid_model_with_adversarial_example('', target_model_name, args)
         logger.info(f'succ rate: {succ_rate:.2f}%')
         logger.info(f'Transfer done.')
-
-        
+    '''
 
             
 

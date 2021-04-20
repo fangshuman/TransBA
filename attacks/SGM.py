@@ -3,9 +3,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from .base import Attack
+from .base import I_FGSM_Attack
 
-class SGM_Attack(Attack):
+class SGM_Attack(I_FGSM_Attack):
     def __init__(self, model, loss_fn, eps=0.05, nb_iter=10, eps_iter=0.005, gamma=0.5, target=False):
         super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, target=target)
         self.gamma = gamma
@@ -84,8 +84,9 @@ class SGM_Attack_for_VGG(SGM_Attack):
             if 'features.' in name:
                 feature_id = int(name.split('.')[-1])
                 if feature_id in pos_relu:
-                    coff = cof_gamma[pos_relu.index(feature_id)]
-                    gamma = np.power(self.gamma, 1.0 / coff)
+                    # coff = cof_gamma[pos_relu.index(feature_id)]
+                    # gamma = np.power(self.gamma, 1.0 / coff)
+                    gamma = self.gamma
                     backward_hook_sgm = self.backward_hook(gamma)
                     module.register_backward_hook(backward_hook_sgm)
 
@@ -105,11 +106,12 @@ class SGM_Attack_for_InceptionV3(SGM_Attack):
         }
         for name, module in self.model.named_modules():
             if 'relu' in name:
-                if 'Conv2d' in name:
-                    coff = 1
-                else:
-                    coff = cof_gamma[name.split('.')[0]]
-                gamma = np.power(self.gamma, 1.0 / coff)
+                # if 'Conv2d' in name:
+                #     coff = 1
+                # else:
+                #     coff = cof_gamma[name.split('.')[0]]
+                # gamma = np.power(self.gamma, 1.0 / coff)
+                gamma = self.gamma
                 backward_hook_sgm = self.backward_hook(gamma)
                 module.register_backward_hook(backward_hook_sgm)
 
@@ -123,9 +125,10 @@ class SGM_Attack_for_InceptionV4(SGM_Attack):
         cof_gamma = [1, 1, 1, 1, 6, 1, 7, 7, 7, 7, 4, 10, 10, 10, 10, 10, 10, 10, 6, 10, 10, 10]
         for name, module in self.model.named_modules():
             if 'relu' in name:
-                feature_id = int(name.split('.')[1])
-                coff = cof_gamma[feature_id]
-                gamma = np.power(self.gamma, 1.0 / coff)
+                # feature_id = int(name.split('.')[1])
+                # coff = cof_gamma[feature_id]
+                # gamma = np.power(self.gamma, 1.0 / coff)
+                gamma = self.gamma
                 backward_hook_sgm = self.backward_hook(gamma)
                 module.register_backward_hook(backward_hook_sgm)
 
@@ -149,10 +152,11 @@ class SGM_Attack_for_InceptionResNetV2(SGM_Attack):
         }
         for name, module in self.model.named_modules():
             if 'relu' in name:
-                if 'Conv2d' in name:
-                    coff = 1
-                else:
-                    coff = cof_gamma[name.split('.')[0]]
-                gamma = np.power(self.gamma, 1.0 / coff)
+                # if 'Conv2d' in name:
+                #     coff = 1
+                # else:
+                #     coff = cof_gamma[name.split('.')[0]]
+                # gamma = np.power(self.gamma, 1.0 / coff)
+                gamma = self.gamma
                 backward_hook_sgm = self.backward_hook(gamma)
                 module.register_backward_hook(backward_hook_sgm)

@@ -5,7 +5,7 @@ source_model_names = [
     'densenet121',
     'inceptionv3',
     'inceptionv4',
-    'inceptionresnetv2'
+    'inceptionresnetv2',
 ]
 
 

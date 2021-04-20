@@ -45,6 +45,7 @@ mi_fgsm_config = {
 
 sgm_config = {
     **attack_base_config,
-    'attack_method': 'sgm',
-    'gamma': 0.5,
+    'eps_iter': 2.0 / 255,
+    'attack_method': 'SGM',
+    'gamma': 0.5,  # gamma=0.5 for DenseNet, gamma=0.2 for ResNet
 }

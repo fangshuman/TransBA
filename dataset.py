@@ -38,10 +38,12 @@ class ImageNetDataset(torch.utils.data.Dataset):
             with Image.open(f) as image:
                 image = image.convert('RGB')
         image = self.transform(image)
+        
         if self.phase == 'cln':
             label = self.class_to_idx[self.image_list[index].split('_')[0]]
         elif self.phase == 'adv':
             label = self.class_to_idx[index]
+
         return image, label, index
 
 
