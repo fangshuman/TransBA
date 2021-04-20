@@ -16,6 +16,7 @@ attack_base_config = {
     'eps': 16 / 255,
     'nb_iter': 10,
     'eps_iter': 1.6 / 255,
+    'gamma': 1.,
 }
 
 i_fgsm_config = {
@@ -40,4 +41,10 @@ mi_fgsm_config = {
     **attack_base_config,
     'attack_method': 'mi_fgsm',
     'decay_factor': 1.0,
+}
+
+sgm_config = {
+    **attack_base_config,
+    'attack_method': 'sgm',
+    'gamma': 0.5,
 }

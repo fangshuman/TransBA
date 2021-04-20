@@ -13,7 +13,6 @@ from utils import Parameters
 from models import make_model
 from dataset import make_loader, save_image
 from attacks import get_attack
-from evaluate import predict
 
 
 
@@ -35,7 +34,7 @@ def get_args():
     parser.add_argument('--nsig', type=int, help='for ti-fgsm')
     parser.add_argument('--prob', type=float, help='for di-fgsm')
     parser.add_argument('--decay-factor', type=float, help='for mi-fgsm')
-    parser.add_argument('--gamma', type=float, help='for sgm')
+    parser.add_argument('--gamma', type=float, help='for sgm gamma < 1.0')
     parser.add_argument('--print-freq', type=int, default=4, help='print frequency')
     parser.add_argument('--not-valid', help='validate adversarial example', action='store_true')
     parser.add_argument('--clean-pred', help='get prediction of clean examples', action='store_true')
@@ -58,21 +57,32 @@ def get_args():
 
 
 
-class Normalize(nn.Module):
-    def __init__(self, mean, std):
-        super(Normalize, self).__init__()
-        self.mean = torch.tensor(mean)
-        self.std = torch.tensor(std)
 
-    def forward(self, x):
-        return (x - self.mean.type_as(x)[None, :, None, None]) / self.std.type_as(x)[None, :, None, None]
+def predict(model, data_loader):
+    model.eval()
+    total_num = 0
+    count = 0
+    preds_ls = []
+
+    with torch.no_grad():
+        for i, (inputs, labels, indexs) in enumerate(data_loader):
+            inputs = inputs.cuda()
+            labels = labels.cuda()
+
+            output = model(inputs)
+            _, preds = torch.max(output.data, dim=1)
+            preds_ls.append(preds)
+            
+            total_num += inputs.size(0)
+            count += (preds == labels).sum().item()
+    
+    return count, total_num, preds_ls
 
 
 def attack_source_model(arch, args):
     # create model
     model = make_model(arch=arch)
     size = model.input_size[1]
-    model = nn.Sequential(Normalize(mean=model.mean, std=model.std), model)
     model = model.cuda()
 
     # create dataloader
@@ -85,12 +95,15 @@ def attack_source_model(arch, args):
 
     # create attack
     attack = get_attack(attack=args.attack_method, 
+                        model_name=arch,
                         model=model, 
                         loss_fn=nn.CrossEntropyLoss(),
                         args=args)
 
     # generate adversarial example
     model.eval()
+    if args.gamma < 1.0:  # use Skip Gradient Method (SGM)
+        attack.register_hook()
     for i, (inputs, _, indexs) in enumerate(data_loader):
         inputs = inputs.cuda()
             
@@ -114,7 +127,6 @@ def attack_source_model(arch, args):
 def predict_model_with_clean_example(arch, args):
     model = make_model(arch=arch)
     size = model.input_size[1]
-    model = nn.Sequential(Normalize(mean=model.mean, std=model.std), model)
     model = model.cuda()
 
     _, data_loader = make_loader(image_dir=args.input_dir,
@@ -132,10 +144,10 @@ def predict_model_with_clean_example(arch, args):
 def valid_model_with_adversarial_example(source_arch, target_arch, args):
     model = make_model(arch=target_arch)
     size = model.input_size[1]
-    model = nn.Sequential(Normalize(mean=model.mean, std=model.std), model)
     model = model.cuda()
 
-    _, data_loader = make_loader(image_dir=os.path.join(args.output_dir, source_arch),
+    _, data_loader = make_loader(#image_dir=os.path.join(args.output_dir, source_arch),
+                                 image_dir='../trans/skip-connections-matter-master/adv_images_resnet50',                          
                                  label_dir=os.path.join('output_clean_preds', target_arch + '.npy'), 
                                  phase='adv',
                                  batch_size=configs.val_batch_size[target_arch], 
@@ -148,7 +160,7 @@ def valid_model_with_adversarial_example(source_arch, target_arch, args):
 
 def main():    
     args = get_args()
-
+    
     if os.path.exists(os.path.join('output_log', args.attack_method + '.log')):
         os.remove(os.path.join('output_log', args.attack_method + '.log'))
     logger = logging.getLogger(__name__)
@@ -157,11 +169,12 @@ def main():
         datefmt="%Y/%m/%d %H:%M:%S",
         level=logging.INFO,
         handlers=[
-            logging.FileHandler(os.path.join('output_log', args.attack_method + '.log')),
+            #logging.FileHandler(os.path.join('output_log', args.attack_method + '.log')),
+            logging.FileHandler(os.path.join('output_log', 'sgm_resnet50.log')),
             logging.StreamHandler(),
         ],
     )
-
+    '''
     if args.clean_pred:
         for target_model_name in configs.target_model_names:
             logger.info(f'Predict {target_model_name} with clean example..')
@@ -169,7 +182,7 @@ def main():
             logger.info('Predict done.')
         
     logger.info(f'Generate adversarial examples with {args.attack_method}')
-
+    
     for i, source_model_name in enumerate(configs.source_model_names):
         logger.info('-' * 50)
         logger.info(f'[{i+1} / {len(configs.source_model_names)}] source model: {source_model_name}')
@@ -184,6 +197,13 @@ def main():
                 succ_rate = valid_model_with_adversarial_example(source_model_name, target_model_name, args)
                 logger.info(f'succ rate: {succ_rate:.2f}%')
                 logger.info(f'Transfer done.')
+    '''
+    for target_model_name in configs.target_model_names:
+        logger.info(f'Transfer to {target_model_name}..')
+        succ_rate = valid_model_with_adversarial_example('', target_model_name, args)
+        logger.info(f'succ rate: {succ_rate:.2f}%')
+        logger.info(f'Transfer done.')
+
         
 
             

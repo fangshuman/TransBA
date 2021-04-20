@@ -1,72 +1,51 @@
 import torch
-import torchvision.models as thmodels
-import pretrainedmodels
+import torch.nn as nn
+
+from .torchvision_models import *
+from .inceptionv4 import inceptionv4
+from .inceptionresnetv2 import inceptionresnetv2
+
+
+def wrap(model):
+    mean = torch.tensor(model.mean).view(3, 1, 1)
+    std = torch.tensor(model.std).view(3, 1, 1)
+    model._forward = model.forward
+    model.forward = lambda x: model._forward((x - mean.to(x.device)) / std.to(x.device))
+    return model
 
 
 def make_model(arch):
     if arch == 'vgg16':
-        model = vgg16()
+        model = vgg16_bn(num_classes=1000, pretrained='imagenet')
     elif arch == 'resnet50':
-        model = resnet50()
+        model = resnet50(num_classes=1000, pretrained='imagenet')
     elif arch == 'resnet101':
-        model = resnet101()
+        model = resnet101(num_classes=1000, pretrained='imagenet')
     elif arch == 'resnet152':
-        model = resnet152()
+        model = resnet152(num_classes=1000, pretrained='imagenet')
     elif arch == 'densenet121':
-        model = densenet121()
+        model = densenet121(num_classes=1000, pretrained='imagenet')
     elif arch == 'densenet169':
-        model = densenet169()
+        model = densenet169(num_classes=1000, pretrained='imagenet')
     elif arch == 'densenet201':
-        model = densenet201()
+        model = densenet201(num_classes=1000, pretrained='imagenet')
     elif arch == 'inceptionv3':
-        model = inceptionv3()
+        model = inceptionv3(num_classes=1000, pretrained='imagenet')
     elif arch == 'inceptionv4':
-        model = inceptionv4()
+        model = inceptionv4(num_classes=1000, pretrained='imagenet')
     elif arch == 'inceptionresnetv2':
-        model = inceptionresnetv2()
+        model = inceptionresnetv2(num_classes=1000, pretrained='imagenet')
     else:
-        raise NotImplementedError(f"No such model: {arch}")
-    
-    # for inception* networks
-    # model.input_size=[3, 299, 299]
-    # model.mean=[0.5, 0.5, 0.5]
-    # model.std =[0.5, 0.5, 0.5]
+        raise NotImplementedError(f"No such model: {arch}")                       
 
-    # for resnet* networks
-    # model.input_size=[3, 224, 224]
-    # model.mean=[0.485, 0.456, 0.406]
-    # model.std =[0.229, 0.224, 0.225]                          
-
-    return model
+    return wrap(model)
+    #return model
 
 
-def vgg16():
-    return pretrainedmodels.vgg16_bn(num_classes=1000, pretrained='imagenet')
-
-def resnet50():
-    return pretrainedmodels.resnet50(num_classes=1000, pretrained='imagenet')
-
-def resnet101():
-    return pretrainedmodels.resnet101(num_classes=1000, pretrained='imagenet')
-
-def resnet152():
-    return pretrainedmodels.resnet152(num_classes=1000, pretrained='imagenet')
-
-def densenet121():
-    return pretrainedmodels.densenet121(num_classes=1000, pretrained='imagenet')
-
-def densenet169():
-    return pretrainedmodels.densenet169(num_classes=1000, pretrained='imagenet')
-
-def densenet201():
-    return pretrainedmodels.densenet201(num_classes=1000, pretrained='imagenet')
-
-def inceptionv3():
-    return pretrainedmodels.inceptionv3(num_classes=1000, pretrained='imagenet')
-
-def inceptionv4():
-    return pretrainedmodels.inceptionv4(num_classes=1000, pretrained='imagenet')
-
-def inceptionresnetv2():
-    return pretrainedmodels.inceptionresnetv2(num_classes=1000, pretrained='imagenet')
+if __name__ == "__main__":
+    model = make_model("vgg16")
+    print(model.input_size)
+    print(model.mean)
+    import ipdb
+    ipdb.set_trace()
 
