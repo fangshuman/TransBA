@@ -133,7 +133,6 @@ class SGM_Attack_for_InceptionV4(SGM_Attack):
                 module.register_backward_hook(backward_hook_sgm)
 
 
-
 class SGM_Attack_for_InceptionResNetV2(SGM_Attack):
     def __init__(self, model, loss_fn, eps=0.05, nb_iter=10, eps_iter=0.005, gamma=0.5, target=False):
         super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, gamma=gamma, target=target)
