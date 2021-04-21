@@ -20,7 +20,7 @@ from attacks import get_attack
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default='')
-    #parser.add_argument('--dataset', type=str)
+    parser.add_argument('--dataset', type=str)
     parser.add_argument('--input-dir', type=str, default='dataset_1000')
     parser.add_argument('--attack-method',type=str, choices=configs.attack_methods)
     #parser.add_argument('--source-model', type=str, default='vgg16', choices=configs.source_model_names)

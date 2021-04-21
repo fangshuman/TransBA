@@ -51,6 +51,7 @@ class ImageNetDataset(torch.utils.data.Dataset):
         return len(self.image_list)
 
 
+
 def make_loader(image_dir, label_dir, phase, batch_size=1, total=1000, size=224):
     """
     Args:

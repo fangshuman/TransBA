@@ -6,6 +6,7 @@ output_log/
 output_clean_preds_1000/
 output_clean_preds_5000/
 data/
+dataset_cifar/
 dataset_1000/
 dataset_5000/
 
