@@ -76,7 +76,7 @@ def predict(model, data_loader):
     model.eval()
     total_num = 0
     count = 0
-    preds_ls = []
+    #preds_ls = []
 
     with torch.no_grad():
         for i, (inputs, labels, indexs) in enumerate(data_loader):
@@ -85,12 +85,13 @@ def predict(model, data_loader):
 
             output = model(inputs)
             _, preds = torch.max(output.data, dim=1)
-            preds_ls.append(preds.cpu())
+            #preds_ls.append(preds.cpu())
             
             total_num += inputs.size(0)
             count += (preds == labels).sum().item()
     
-    return count, total_num, preds_ls
+    #return count, total_num, preds_ls
+    return count, total_num
 
 
 
@@ -123,8 +124,8 @@ def attack_source_model(arch, args):
         inputs = inputs.cuda()
         labels = labels.cuda()
 
-        #inputs_adv = attack.perturb(inputs, labels) 
-        inputs_adv = attack.perturb(inputs, labels, indexs, img_list) 
+        inputs_adv = attack.perturb(inputs, labels) 
+        #inputs_adv = attack.perturb(inputs, labels, indexs, img_list) 
             
         # save adversarial example
         save_image(images=inputs_adv.detach().cpu().numpy(), 
@@ -137,21 +138,21 @@ def attack_source_model(arch, args):
 
     
 
-def predict_model_with_clean_example(arch, args):
-    model = make_model(arch=arch)
-    size = model.input_size[1]
-    model = model.cuda()
+# def predict_model_with_clean_example(arch, args):
+#     model = make_model(arch=arch)
+#     size = model.input_size[1]
+#     model = model.cuda()
     
-    _, data_loader = make_loader(image_dir=args.input_dir,
-                                 label_dir='imagenet_class_to_idx.npy', 
-                                 phase='cln',
-                                 batch_size=configs.val_batch_size[arch],
-                                 total=args.total_num,
-                                 size=size)
+#     _, data_loader = make_loader(image_dir=args.input_dir,
+#                                  label_dir='imagenet_class_to_idx.npy', 
+#                                  phase='cln',
+#                                  batch_size=configs.val_batch_size[arch],
+#                                  total=args.total_num,
+#                                  size=size)
     
-    _, _, preds_ls = predict(model, data_loader)
-    cln_preds = torch.cat(preds_ls)
-    np.save(os.path.join('output_clean_preds', arch + '.npy'), cln_preds.numpy())
+#     _, _, preds_ls = predict(model, data_loader)
+#     cln_preds = torch.cat(preds_ls)
+#     np.save(os.path.join('output_clean_preds', arch + '.npy'), cln_preds.numpy())
 
 
 
@@ -166,9 +167,24 @@ def valid_model_with_adversarial_example(arch, args):
                                  batch_size=configs.val_batch_size[arch], 
                                  total=args.total_num,
                                  size=size)
+
+    model.eval()
+    total = 0
+    count = 0
+
+    with torch.no_grad():
+        for i, (inputs, labels, indexs) in enumerate(data_loader):
+            inputs = inputs.cuda()
+            labels = labels.cuda()
+
+            output = model(inputs)
+            _, preds = torch.max(output.data, dim=1)
+            
+            total += inputs.size(0)
+            count += (preds == labels).sum().item()
     
-    cnt, total, _ = predict(model, data_loader)
-    return cnt * 100.0 / total
+    #cnt, total, _ = predict(model, data_loader)
+    return count * 100.0 / total
 
 
 
@@ -237,8 +253,8 @@ def main():
             if not args.not_valid:
                 for target_model_name in configs.target_model_names:
                     logger.info(f'Transfer to {target_model_name}..')
-                    succ_rate = valid_model_with_adversarial_example(target_model_name, args)
-                    logger.info(f'succ rate: {succ_rate:.2f}%')
+                    acc = valid_model_with_adversarial_example(target_model_name, args)
+                    logger.info(f'acc: {acc:.2f}%')
                     logger.info(f'Transfer done.')
         
         torch.cuda.empty_cache()
