@@ -1,11 +1,11 @@
 # source model
 source_model_names = [
-    'vgg16',
+    #'vgg16',
     'resnet50',
-    'densenet121',
-    'inceptionv3',
-    'inceptionv4',
-    'inceptionresnetv2',
+    # 'densenet121',
+    # 'inceptionv3',
+    # 'inceptionv4',
+    #'inceptionresnetv2',
 ]
 
 
@@ -22,7 +22,7 @@ resnet50_config = {
 
 densenet121_config = {
     'source_model': 'densenet121',
-    'batch_size': 64,
+    'batch_size': 32,
 }
 
 inceptionv3_config = {
@@ -32,10 +32,10 @@ inceptionv3_config = {
 
 inceptionv4_config = {
     'source_model': 'inceptionv4',
-    'batch_size': 32,
+    'batch_size': 16,
 }
 
 inceptionresnetv2_config = {
     'source_model': 'inceptionresnetv2',
-    'batch_size': 32,
+    'batch_size': 10,
 }

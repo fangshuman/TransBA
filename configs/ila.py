@@ -1,41 +1,45 @@
 from .source_model import *
 
 ila_base = {
-    'eps': 16,
+    'eps': 16 / 255,
     'nb_iter': 20,
-    'eps_iter': 1.6,
-    'gamma': 1.,  # using sgm when gamma < 1.0
+    'step_size_pgd': 0.008,
+    'step_size_ila': 0.01,
+    'gamma': 1.,   # using sgm when gamma < 1.0
+    'batch_size_coeff': 0.5,  # reduce batch size
 }
 
 ila_config = {
     'vgg16_ila_config': {
+        'ila_layer': 28,  # choose from 0...43
         **ila_base,
         **vgg16_config,
-        'ila_layer': '23',  # choose from 0...43
     },
     'resnet50_ila_config': {
+        'ila_layer': 4,  # choose from 0...7
          **ila_base,
          **resnet50_config,
-         'ila_layer': '2_3',  # choose from 0_0, 1_*, 2_*, 3_*, 4_*
     },
     'densenet121_ila_config': {
+        'ila_layer': 6,   # choose from 0...9
         **ila_base,
         **densenet121_config,
-        'ila_layer': '6',   # choose from 0...8
     },
     'inceptionv3_ila_config': {
+        'ila_layer': 4,     # choose from 0...10
         **ila_base,
         **inceptionv3_config,
-        'ila_layer': '1_1',     # choose from 1_1, ...
+        
     },
     'inceptionv4_ila_config': {
+        'ila_layer': 6,   # chose from 0...21
         **ila_base, 
         **inceptionv4_config,
-        'ila_layer': '0',   # chose from 0...21
+        
     },
     'inceptionresnetv2_ila_config': {
+        'ila_layer': 5,     # choose from 0...17
         **ila_base,
         **inceptionresnetv2_config,
-        'ila_layer': '1_1',     # choose from 1_1, ...
     },
 }

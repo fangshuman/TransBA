@@ -45,11 +45,3 @@ def make_model(arch):
     return wrap(model)
 
 
-
-if __name__ == "__main__":
-    model = make_model("vgg16")
-    print(model.input_size)
-    print(model.mean)
-    import ipdb
-    ipdb.set_trace()
-

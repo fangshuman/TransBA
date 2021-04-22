@@ -2,10 +2,11 @@ from .source_model import *
 
 # pgd
 pgd_base = {
-    'eps': 16,
+    'eps': 16 / 255,
     'nb_iter': 10,
-    'eps_iter': 1.6,
+    'eps_iter': 1.6 / 255,
     'gamma': 1.,  # using sgm when gamma < 1.0
+    'batch_size_coeff': 1.,
 }
 
 pgd_config = {
@@ -39,9 +40,9 @@ pgd_config = {
 
 # ti-fgsm
 ti_config_base = {
-    **pgd_base,
     'kernlen': 7,
     'nsig': 3,
+    **pgd_base,
 }
 
 ti_config = {
@@ -75,8 +76,8 @@ ti_config = {
 
 # di2-fgsm
 di_config_base = {
-    **pgd_base,
     'prob': 0.5,
+    **pgd_base,
 }
 
 di_config = {
@@ -111,8 +112,8 @@ di_config = {
 
 # mi-fgsm
 mi_config_base = {
-    **pgd_base,
     'decay_factor': 1.0,
+    **pgd_base, 
 }
 
 mi_config = {
@@ -143,47 +144,3 @@ mi_config = {
     },
 }
 
-
-
-
-
-
-
-# # attack method config
-# attack_base_config = {
-#     'eps': 16 / 255,
-#     'nb_iter': 10,
-#     'eps_iter': 1.6 / 255,
-#     'gamma': 1.,
-# }
-
-# i_fgsm_config = {
-#     **attack_base_config,
-#     'attack_method': 'i_fgsm',
-# }
-
-# ti_fgsm_config = {
-#     **attack_base_config,
-#     'attack_method': 'ti_fgsm',
-#     'kernlen': 7,
-#     'nsig': 3,
-# }
-
-# di_fgsm_config = {
-#     **attack_base_config,
-#     'attack_method': 'di_fgsm',
-#     'prob': 0.5,
-# }
-
-# mi_fgsm_config = {
-#     **attack_base_config,
-#     'attack_method': 'mi_fgsm',
-#     'decay_factor': 1.0,
-# }
-
-# sgm_config = {
-#     **attack_base_config,
-#     'eps_iter': 2.0 / 255,
-#     'attack_method': 'SGM',
-#     'gamma': 0.5,  # gamma=0.5 for DenseNet, gamma=0.2 for ResNet
-# }

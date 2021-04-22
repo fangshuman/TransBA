@@ -6,7 +6,6 @@ import torch
 from torchvision import transforms
 from PIL import Image
 
-from advertorch.attacks import LinfPGDAttack
 class ImageNetDataset(torch.utils.data.Dataset):
     def __init__(self, image_dir, label_dir, phase, total=1000, size=224):
         assert phase in ['cln', 'adv']
@@ -17,10 +16,11 @@ class ImageNetDataset(torch.utils.data.Dataset):
         self.phase = phase
 
         if phase == 'cln':
-            self.image_list = [item for item in self.image_list if 'JPEG' in item]
+            self.image_list = [item for item in self.image_list if 'png' in item]
             self.transform = transforms.Compose([
                 transforms.Resize(int(size / 0.875)),
                 transforms.CenterCrop(size),
+                #transforms.Resize(size),
                 transforms.ToTensor()
             ])
         elif phase == 'adv':
@@ -39,10 +39,11 @@ class ImageNetDataset(torch.utils.data.Dataset):
                 image = image.convert('RGB')
         image = self.transform(image)
         
-        if self.phase == 'cln':
-            label = self.class_to_idx[self.image_list[index].split('_')[0]]
-        elif self.phase == 'adv':
-            label = self.class_to_idx[index]
+        # if self.phase == 'cln':
+        #     label = self.class_to_idx[self.image_list[index].split('_')[0]]
+        # elif self.phase == 'adv':
+        #     label = self.class_to_idx[index]
+        label = self.class_to_idx[self.image_list[index].split('_')[0]]
 
         return image, label, index
 
