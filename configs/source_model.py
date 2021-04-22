@@ -9,19 +9,7 @@ source_model_names = [
 ]
 
 
-# source model batch size
-att_batch_size = {
-    'vgg16': 32,
-    'resnet50': 32,
-    'densenet121': 32,
-    'inceptionv3': 32,
-    'inceptionv4': 16,
-    'inceptionresnetv2': 16,
-}
-
-
-
-'''
+# target model config
 vgg16_config = {
     'source_model': 'vgg16',
     'batch_size': 32,
@@ -51,4 +39,3 @@ inceptionresnetv2_config = {
     'source_model': 'inceptionresnetv2',
     'batch_size': 32,
 }
-'''

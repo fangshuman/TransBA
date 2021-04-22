@@ -19,10 +19,11 @@ from attacks import get_attack
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='')
-    parser.add_argument('--dataset', type=str)
+    #parser.add_argument('--config', type=str, default='')
+    #parser.add_argument('--dataset', type=str, default='imagenet')
     parser.add_argument('--input-dir', type=str, default='dataset_1000')
-    parser.add_argument('--attack-method',type=str, choices=configs.attack_methods)
+    parser.add_argument('--output-dir', type=str, default='output')
+    parser.add_argument('--attack-method',type=str, default='pgd', choices=configs.attack_methods)
     #parser.add_argument('--source-model', type=str, default='vgg16', choices=configs.source_model_names)
     #parser.add_argument('--target-model', type=str, choices=target_model_names)
     parser.add_argument('--batch-size', type=int)
@@ -36,24 +37,25 @@ def get_args():
     parser.add_argument('--prob', type=float, help='for di-fgsm')
     parser.add_argument('--decay-factor', type=float, help='for mi-fgsm')
     parser.add_argument('--gamma', type=float, help='for sgm gamma < 1.0')
+    parser.add_argument('--ila-layer', type=str, help='for ila')
     parser.add_argument('--print-freq', type=int, default=4, help='print frequency')
     parser.add_argument('--not-valid', help='validate adversarial example', action='store_true')
     parser.add_argument('--clean-pred', help='get prediction of clean examples', action='store_true')
     
     args = parser.parse_args()
 
-    try:
-        config = getattr(configs, args.config)
-        args = vars(args)
-        args = {**config, **{k: args[k] for k in args if args[k] is not None}}
-        args = Parameters(args)
-    except Exception:
-        raise NotImplementedError(f"No such configuration: {args.config}")
+    # try:
+    #     config = getattr(configs, args.attack_method + '_config')
+    #     args = vars(args)
+    #     args = {**config, **{k: args[k] for k in args if args[k] is not None}}
+    #     args = Parameters(args)
+    # except Exception:
+    #     raise NotImplementedError(f"No such configuration: {args.config}")
 
-    output_dir = os.path.join('output', args.attack_method)
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
-    args.output_dir = output_dir
+    # output_dir = os.path.join('output', args.attack_method)
+    # if not os.path.exists(output_dir):
+    #     os.mkdir(output_dir)
+    # args.output_dir = output_dir
 
     return args
 
@@ -91,21 +93,16 @@ def attack_source_model(arch, args):
     img_list, data_loader = make_loader(image_dir=args.input_dir,
                                         label_dir='imagenet_class_to_idx.npy', 
                                         phase='cln',
-                                        batch_size=configs.att_batch_size[arch],
+                                        #batch_size=configs.att_batch_size[arch],
+                                        batch_size=args.batch_size,
                                         total=args.total_num,
                                         size=size)
 
     # create attack
     attack = get_attack(attack=args.attack_method, 
-                        model_name=arch,
                         model=model, 
                         loss_fn=nn.CrossEntropyLoss(),
                         args=args)
-
-    adv_images_dir = os.path.join(args.output_dir, f'{arch}_gamma{args.gamma}')
-    #adv_images_dir = os.path.join(args.output_dir, arch)
-    if not os.path.exists(adv_images_dir):
-        os.mkdir(adv_images_dir)
 
     # generate adversarial example
     model.eval()
@@ -119,13 +116,14 @@ def attack_source_model(arch, args):
         _, preds = torch.max(output, dim=1)
 
         #inputs_adv = attack.perturb(inputs, labels) 
+        #ipdb.set_trace()
         inputs_adv = attack.perturb(inputs, preds) 
             
         # save adversarial example
         save_image(images=inputs_adv.detach().cpu().numpy(), 
                    indexs=indexs, 
                    img_list=img_list, 
-                   output_dir=adv_images_dir)
+                   output_dir=args.output_dir)
 
         if i % args.print_freq == 0:
             print(f'generating: [{i} / {len(data_loader)}]')
@@ -148,16 +146,16 @@ def predict_model_with_clean_example(arch, args):
     np.save(os.path.join('output_clean_preds', arch + '.npy'), cln_preds)
 
 
-def valid_model_with_adversarial_example(source_arch, target_arch, args):
-    model = make_model(arch=target_arch)
+def valid_model_with_adversarial_example(arch, args):
+    model = make_model(arch=arch)
     size = model.input_size[1]
     model = model.cuda()
 
-    _, data_loader = make_loader(image_dir=os.path.join(args.output_dir, source_arch),
+    _, data_loader = make_loader(image_dir=os.path.join(args.output_dir),
                                  #image_dir=os.path.join(args.output_dir, f'{arch}_gamma{args.gamma}'),                         
-                                 label_dir=os.path.join('output_clean_preds_1000', target_arch + '.npy'), 
+                                 label_dir=os.path.join('output_clean_preds', arch + '.npy'), 
                                  phase='adv',
-                                 batch_size=configs.val_batch_size[target_arch], 
+                                 batch_size=configs.val_batch_size[arch], 
                                  total=args.total_num,
                                  size=size)
     
@@ -166,9 +164,12 @@ def valid_model_with_adversarial_example(source_arch, target_arch, args):
 
 
 def main():    
-    args = get_args()
+    _args = get_args()
+    output_root_dir = os.path.join(_args.output_dir, _args.attack_method)
+    if not os.path.exists(output_root_dir):
+        os.mkdir(output_root_dir)
     
-    logger_path = os.path.join('output_log', args.attack_method + '.log')
+    logger_path = os.path.join('output_log', _args.attack_method + '.log')
     #logger_path = os.path.join('output_log', 'sgm_densenet121_prediction.log')
     #if os.path.exists(logger_path):
     #    os.remove(logger_path)
@@ -182,31 +183,54 @@ def main():
             logging.StreamHandler(),
         ],
     )
-    logger.info(str(datetime.now())[:-7])
-    logger.info(args)
     
-    if args.clean_pred:
+    # predict with clean examples
+    if _args.clean_pred:
         for target_model_name in configs.target_model_names:
             logger.info(f'Predict {target_model_name} with clean example..')
-            predict_model_with_clean_example(target_model_name, args)
+            predict_model_with_clean_example(target_model_name, _args)
             logger.info('Predict done.')
         
-    logger.info(f'Generate adversarial examples with {args.attack_method}')
+    all_configs = getattr(configs, _args.attack_method + '_config')
 
+
+    # generate adversarial examples
+    logger.info(f'Generate adversarial examples with {_args.attack_method}')
     for i, source_model_name in enumerate(configs.source_model_names):
-        logger.info('-' * 50)
-        logger.info(f'[{i+1} / {len(configs.source_model_names)}] source model: {source_model_name}')
-
-        attack_source_model(source_model_name, args)
-        logger.info(f'Attack finished.')
+        config_str = source_model_name + '_' + _args.attack_method + '_config'
         
-        # validate
-        if not args.not_valid:
-            for target_model_name in configs.target_model_names:
-                logger.info(f'Transfer to {target_model_name}..')
-                succ_rate = valid_model_with_adversarial_example(source_model_name, target_model_name, args)
-                logger.info(f'succ rate: {succ_rate:.2f}%')
-                logger.info(f'Transfer done.')
+        if config_str in all_configs:
+            config = all_configs[config_str]
+            
+            # make output dir
+            output_dir = os.path.join(output_root_dir, source_model_name + str(config))
+            if not os.path.exists(output_dir):
+                os.mkdir(output_dir)
+            _args.output_dir = output_dir
+
+            # load config
+            args = vars(_args)
+            args = {**config, **{k: args[k] for k in args if args[k] is not None}}
+            args = Parameters(args)
+
+            logger.info(str(datetime.now())[:-7])
+            logger.info(args)
+
+            args.eps = args.eps / 255.0
+            args.eps_iter = args.eps_iter / 255.0
+            
+            # begin attack
+            logger.info(f'[{i+1} / {len(configs.source_model_names)}] source model: {source_model_name}')
+            attack_source_model(source_model_name, args)
+            logger.info(f'Attack finished.')
+        
+            # validate
+            if not args.not_valid:
+                for target_model_name in configs.target_model_names:
+                    logger.info(f'Transfer to {target_model_name}..')
+                    succ_rate = valid_model_with_adversarial_example(target_model_name, args)
+                    logger.info(f'succ rate: {succ_rate:.2f}%')
+                    logger.info(f'Transfer done.')
     
     '''
     for target_model_name in configs.target_model_names:
