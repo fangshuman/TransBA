@@ -66,29 +66,12 @@ class SGM_Attack_for_VGG(SGM_Attack):
         super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, gamma=gamma, target=target)
 
     def register_hook(self):
-        '''
-        vgg11: [*, M, *, M, *, *, M, *, *, M, *, *, M],
-        vgg13: [*, *, M, *, *, M, *, *, M, *, *, M, *, *, M],
-        vgg16: [*, *, M, *, *, M, *, *, *, M, *, *, *, M, *, *, *, M],
-        vgg19: [*, *, M, *, *, M, *, *, *, *, M, *, *, *, *, M, *, *, *, *, M],
-
-        * consists of "conv, relu" in vgg while consists of "conv, bn, relu" in vgg_bn    
-        '''
-        # Consider features between two nearest Maxpool as a module
-        # There are 5 modules in vgg16_bn
-        # and each module has 2, 2, 3, 3, 3 ReLU
         pos_relu =  [2, 5,   9, 12,   16, 19, 22,   26, 29, 32,   36, 39, 42]
-        cof_gamma = [2, 2,   2,  2,    3,  3,  3,    3,  3,  3,    3,  3,  3]
-
-        for name, module in self.model.named_modules():
-            if 'features.' in name:
-                feature_id = int(name.split('.')[-1])
-                if feature_id in pos_relu:
-                    # coff = cof_gamma[pos_relu.index(feature_id)]
-                    # gamma = np.power(self.gamma, 1.0 / coff)
-                    gamma = self.gamma
-                    backward_hook_sgm = self.backward_hook(gamma)
-                    module.register_backward_hook(backward_hook_sgm)
+        
+        gamma = self.gamma
+        backward_hook_sgm = self.backward_hook(gamma)
+        for p in pos_relu:
+            self.model._features[p].register_backward_hook(backward_hook_sgm)
 
 
 
@@ -97,23 +80,30 @@ class SGM_Attack_for_InceptionV3(SGM_Attack):
         super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, gamma=gamma, target=target)
 
     def register_hook(self):
-        cof_gamma = {
-            'Conv2d': 1,
-            'Mixed_5b': 7, 'Mixed_5c': 7, 'Mixed_5d': 7,
-            'Mixed_6a': 4, 'Mixed_6b': 10, 'Mixed_6c': 10, 'Mixed_6d': 10, 'Mixed_6e': 10,
-            'AuxLogits': 2,
-            'Mixed_7a': 6, 'Mixed_7b': 9, 'Mixed_7c': 9,
-        }
-        for name, module in self.model.named_modules():
-            if 'relu' in name:
-                # if 'Conv2d' in name:
-                #     coff = 1
-                # else:
-                #     coff = cof_gamma[name.split('.')[0]]
-                # gamma = np.power(self.gamma, 1.0 / coff)
-                gamma = self.gamma
-                backward_hook_sgm = self.backward_hook(gamma)
-                module.register_backward_hook(backward_hook_sgm)
+        module_names = ['Conv2d_1a_3x3', 'Conv2d_2a_3x3', 'Conv2d_2b_3x3', 'Conv2d_3b_1x1', 'Conv2d_4a_3x3', 'Mixed_5b', 'Mixed_5c', 'Mixed_5d', 'Mixed_6a', 'Mixed_6b', 'Mixed_6c']
+        
+        gamma = self.gamma
+        backward_hook_sgm = self.backward_hook(gamma)
+        for mm in module_names:
+            self.model._modules.get('mm')._modules.get('relu').register_backward_hook(backward_hook_sgm)
+
+        # cof_gamma = {
+        #     'Conv2d': 1,
+        #     'Mixed_5b': 7, 'Mixed_5c': 7, 'Mixed_5d': 7,
+        #     'Mixed_6a': 4, 'Mixed_6b': 10, 'Mixed_6c': 10, 'Mixed_6d': 10, 'Mixed_6e': 10,
+        #     'AuxLogits': 2,
+        #     'Mixed_7a': 6, 'Mixed_7b': 9, 'Mixed_7c': 9,
+        # }
+        # for name, module in self.model.named_modules():
+        #     if 'relu' in name:
+        #         # if 'Conv2d' in name:
+        #         #     coff = 1
+        #         # else:
+        #         #     coff = cof_gamma[name.split('.')[0]]
+        #         # gamma = np.power(self.gamma, 1.0 / coff)
+        #         gamma = self.gamma
+        #         backward_hook_sgm = self.backward_hook(gamma)
+        #         module.register_backward_hook(backward_hook_sgm)
 
 
 
@@ -122,15 +112,20 @@ class SGM_Attack_for_InceptionV4(SGM_Attack):
         super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, gamma=gamma, target=target)
 
     def register_hook(self):
-        cof_gamma = [1, 1, 1, 1, 6, 1, 7, 7, 7, 7, 4, 10, 10, 10, 10, 10, 10, 10, 6, 10, 10, 10]
-        for name, module in self.model.named_modules():
-            if 'relu' in name:
-                # feature_id = int(name.split('.')[1])
-                # coff = cof_gamma[feature_id]
-                # gamma = np.power(self.gamma, 1.0 / coff)
-                gamma = self.gamma
-                backward_hook_sgm = self.backward_hook(gamma)
-                module.register_backward_hook(backward_hook_sgm)
+        gamma = self.gamma
+        backward_hook_sgm = self.backward_hook(gamma)
+        for f in range(22):  # 21 modules
+            self.model.features[f]._modules.get('relu').register_backward_hook(backward_hook_sgm)
+        
+        # cof_gamma = [1, 1, 1, 1, 6, 1, 7, 7, 7, 7, 4, 10, 10, 10, 10, 10, 10, 10, 6, 10, 10, 10]
+        # for name, module in self.model.named_modules():
+        #     if 'relu' in name:
+        #         # feature_id = int(name.split('.')[1])
+        #         # coff = cof_gamma[feature_id]
+        #         # gamma = np.power(self.gamma, 1.0 / coff)
+        #         gamma = self.gamma
+        #         backward_hook_sgm = self.backward_hook(gamma)
+        #         module.register_backward_hook(backward_hook_sgm)
 
 
 class SGM_Attack_for_InceptionResNetV2(SGM_Attack):
@@ -138,24 +133,31 @@ class SGM_Attack_for_InceptionResNetV2(SGM_Attack):
         super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, gamma=gamma, target=target)
 
     def register_hook(self):
-        cof_gamma = {
-            'Conv2d': 1,
-            'mixed_5b': 7, 
-            'repeat': 7,
-            'mixed_6a': 4, 
-            'repeat_1': 5, 
-            'mixed_7a': 7,
-            'repeat_2': 5,
-            'block8': 4,
-            'conv2d_7b': 1,
-        }
-        for name, module in self.model.named_modules():
-            if 'relu' in name:
-                # if 'Conv2d' in name:
-                #     coff = 1
-                # else:
-                #     coff = cof_gamma[name.split('.')[0]]
-                # gamma = np.power(self.gamma, 1.0 / coff)
-                gamma = self.gamma
-                backward_hook_sgm = self.backward_hook(gamma)
-                module.register_backward_hook(backward_hook_sgm)
+        module_names = ['conv2d_1a', 'conv2d_2a', 'conv2d_2b', 'maxpool_3a', 'conv2d_3b', 'conv2d_4a', 'maxpool_5a', 'mixed_5b', 'repeat', 'mixed_6a','repeat_1', 'mixed_7a', 'repeat_2', 'block8', 'conv2d_7b', 'avgpool_1a', 'last_linear']
+
+        gamma = self.gamma
+        backward_hook_sgm = self.backward_hook(gamma)
+        for mm in module_names:
+            self.model._modules.get('mm')._modules.get('relu').register_backward_hook(backward_hook_sgm)
+
+        # cof_gamma = {
+        #     'Conv2d': 1,
+        #     'mixed_5b': 7, 
+        #     'repeat': 7,
+        #     'mixed_6a': 4, 
+        #     'repeat_1': 5, 
+        #     'mixed_7a': 7,
+        #     'repeat_2': 5,
+        #     'block8': 4,
+        #     'conv2d_7b': 1,
+        # }
+        # for name, module in self.model.named_modules():
+        #     if 'relu' in name:
+        #         # if 'Conv2d' in name:
+        #         #     coff = 1
+        #         # else:
+        #         #     coff = cof_gamma[name.split('.')[0]]
+        #         # gamma = np.power(self.gamma, 1.0 / coff)
+        #         gamma = self.gamma
+        #         backward_hook_sgm = self.backward_hook(gamma)
+        #         module.register_backward_hook(backward_hook_sgm)

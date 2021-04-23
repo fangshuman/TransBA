@@ -5,7 +5,7 @@ from .ILA import *
 from advertorch.attacks import LinfPGDAttack
 
 def get_attack(attack, model, loss_fn, args):
-    if attack == 'pgd':
+    if attack == 'i_fgsm':
         return I_FGSM_Attack(model=model, 
                              loss_fn=loss_fn,
                              eps=args.eps,
@@ -20,7 +20,7 @@ def get_attack(attack, model, loss_fn, args):
         #                      rand_init=False,
         #                      targeted=args.target)
     
-    elif attack == 'ti':
+    elif attack == 'ti_fgsm':
         return TI_FGSM_Attack(model=model, 
                               loss_fn=loss_fn,
                               eps=args.eps,
@@ -30,7 +30,7 @@ def get_attack(attack, model, loss_fn, args):
                               nsig=args.nsig,
                               target=args.target)
     
-    elif attack == 'di':
+    elif attack == 'di_fgsm':
         return DI_FGSM_Attack(model=model, 
                               loss_fn=loss_fn,
                               eps=args.eps,
@@ -39,7 +39,7 @@ def get_attack(attack, model, loss_fn, args):
                               prob=args.prob,
                               target=args.target)
     
-    elif attack == 'mi':
+    elif attack == 'mi_fgsm':
         return MI_FGSM_Attack(model=model, 
                               loss_fn=loss_fn,
                               eps=args.eps,
@@ -116,3 +116,17 @@ def get_attack(attack, model, loss_fn, args):
 
     else:
         raise NotImplementedError(f"No such attack method: {attack}")
+
+
+
+# def f(parameters):
+#     xxxx
+#     return value
+
+# config:
+# max/min
+# pasrs = {
+#     'x': []
+# }
+
+# run.(f)

@@ -33,7 +33,7 @@ def get_args():
     #parser.add_argument('--dataset', type=str, default='imagenet')
     parser.add_argument('--input-dir', type=str, default='dataset_1000')
     parser.add_argument('--output-dir', type=str, default='output')
-    parser.add_argument('--attack-method',type=str, default='pgd', choices=configs.attack_methods)
+    parser.add_argument('--attack-method',type=str, default='i_fgsm', choices=configs.attack_methods)
     #parser.add_argument('--source-model', type=str, default='vgg16', choices=configs.source_model_names)
     #parser.add_argument('--target-model', type=str, choices=target_model_names)
     parser.add_argument('--batch-size', type=int)
@@ -48,9 +48,8 @@ def get_args():
     parser.add_argument('--decay-factor', type=float, help='for mi-fgsm')
     parser.add_argument('--gamma', type=float, help='for sgm gamma < 1.0')
     parser.add_argument('--ila-layer', type=int, help='for ila')
-    parser.add_argument('--print-freq', type=int, default=8, help='print frequency')
+    parser.add_argument('--print-freq', type=int, default=10, help='print frequency')
     parser.add_argument('--not-valid', help='validate adversarial example', action='store_true')
-    parser.add_argument('--clean-pred', help='get prediction of clean examples', action='store_true')
     
     args = parser.parse_args()
 
@@ -133,26 +132,8 @@ def attack_source_model(arch, args):
                    img_list=img_list, 
                    output_dir=args.output_dir)
 
-        # if i % args.print_freq == 0:
-        #     print(f'generating: [{i} / {len(data_loader)}]')
-
-    
-
-# def predict_model_with_clean_example(arch, args):
-#     model = make_model(arch=arch)
-#     size = model.input_size[1]
-#     model = model.cuda()
-    
-#     _, data_loader = make_loader(image_dir=args.input_dir,
-#                                  label_dir='imagenet_class_to_idx.npy', 
-#                                  phase='cln',
-#                                  batch_size=configs.val_batch_size[arch],
-#                                  total=args.total_num,
-#                                  size=size)
-    
-#     _, _, preds_ls = predict(model, data_loader)
-#     cln_preds = torch.cat(preds_ls)
-#     np.save(os.path.join('output_clean_preds', arch + '.npy'), cln_preds.numpy())
+        if i % args.print_freq == 0:
+            print(f'generating: [{i} / {len(data_loader)}]')
 
 
 
@@ -183,7 +164,6 @@ def valid_model_with_adversarial_example(arch, args):
             total += inputs.size(0)
             count += (preds == labels).sum().item()
     
-    #cnt, total, _ = predict(model, data_loader)
     return count * 100.0 / total
 
 
@@ -207,27 +187,23 @@ def main():
             logging.StreamHandler(),
         ],
     )
-    
-    # predict with clean examples
-    if _args.clean_pred:
-        for target_model_name in configs.target_model_names:
-            logger.info(f'Predict {target_model_name} with clean example..')
-            predict_model_with_clean_example(target_model_name, _args)
-            logger.info('Predict done.')
         
     all_configs = getattr(configs, _args.attack_method + '_config')
     
     # generate adversarial examples
     logger.info(f'Generate adversarial examples with {_args.attack_method}')
     for i, source_model_name in enumerate(configs.source_model_names):
+        print(source_model_name)
+        acc_list = []
+
         config_str = source_model_name + '_' + _args.attack_method + '_config'
         
         if config_str in all_configs:
             config = all_configs[config_str]
             
             # make output dir
-            output_dir = os.path.join(output_root_dir, source_model_name + str(config))
-            #output_dir = os.path.join(output_root_dir, source_model_name + str(_args.gamma))
+            output_dir = os.path.join(output_root_dir, source_model_name)
+            #output_dir = os.path.join(output_root_dir, source_model_name + '_gamma' + str(_args.gamma))
             if not os.path.exists(output_dir):
                 os.mkdir(output_dir)
             _args.output_dir = output_dir
@@ -254,10 +230,14 @@ def main():
                 for target_model_name in configs.target_model_names:
                     logger.info(f'Transfer to {target_model_name}..')
                     acc = valid_model_with_adversarial_example(target_model_name, args)
+                    acc_list.append(acc)
                     logger.info(f'acc: {acc:.2f}%')
                     logger.info(f'Transfer done.')
         
         torch.cuda.empty_cache()
+
+        for a in acc_list:
+            print(f'{a:.2f}', end='\t')
 
     '''
     for target_model_name in configs.target_model_names:

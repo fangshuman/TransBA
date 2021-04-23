@@ -18,8 +18,8 @@ class I_FGSM_Attack(object):
         self.eps_iter = eps_iter
         self.target = target
 
-    #def perturb(self, x, y):
-    def perturb(self, x, y, indexs, img_list):
+    def perturb(self, x, y):
+    #def perturb(self, x, y, indexs, img_list):
         delta = torch.zeros_like(x)
         delta.requires_grad_()
     
@@ -39,13 +39,13 @@ class I_FGSM_Attack(object):
             delta.grad.data.zero_()
 
             # save
-            if (i + 1) % 10 == 0:
-                print(f'saving {i + 1} iter adversarial examples for this batch.')
-                output_dir = 'output/ifgsm_resnet50/' + str(i + 1) + 'iter'
-                if not os.path.exists(output_dir):
-                    os.mkdir(output_dir)
-                imgs = torch.clamp(x + delta, 0., 1.)
-                save_image(imgs.detach().cpu().numpy(), indexs, img_list, output_dir)
+            # if (i + 1) % 10 == 0:
+            #     print(f'saving {i + 1} iter adversarial examples for this batch.')
+            #     output_dir = 'output/ifgsm_resnet50/' + str(i + 1) + 'iter'
+            #     if not os.path.exists(output_dir):
+            #         os.mkdir(output_dir)
+            #     imgs = torch.clamp(x + delta, 0., 1.)
+            #     save_image(imgs.detach().cpu().numpy(), indexs, img_list, output_dir)
 
         x_adv = torch.clamp(x + delta, 0., 1.)
         return x_adv
@@ -144,6 +144,7 @@ class MI_FGSM_Attack(I_FGSM_Attack):
         self.decay_factor = decay_factor
 
     def perturb(self, x, y):
+    #def perturb(self, x, y, indexs, img_list):
         def normalize_by_pnorm(x, small_constant=1e-6):
             batch_size = x.size(0)
             norm = x.abs().view(batch_size, -1).sum(dim=1)
@@ -172,6 +173,15 @@ class MI_FGSM_Attack(I_FGSM_Attack):
             delta.data = torch.clamp(x.data + delta, 0., 1.) - x
 
             delta.grad.data.zero_()
+
+            # save
+            # if (i + 1) % 10 == 0:
+            #     print(f'saving {i + 1} iter adversarial examples for this batch.')
+            #     output_dir = 'output/mifgsm_resnet50/' + str(i + 1) + 'iter'
+            #     if not os.path.exists(output_dir):
+            #         os.mkdir(output_dir)
+            #     imgs = torch.clamp(x + delta, 0., 1.)
+            #     save_image(imgs.detach().cpu().numpy(), indexs, img_list, output_dir)
     
         x_adv = torch.clamp(x + delta, 0., 1.)
         return x_adv

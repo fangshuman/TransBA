@@ -1,11 +1,11 @@
 # source model
 source_model_names = [
-    #'vgg16',
+    'vgg16',
     'resnet50',
-    # 'densenet121',
-    # 'inceptionv3',
-    # 'inceptionv4',
-    #'inceptionresnetv2',
+    'densenet121',
+    'inceptionv3',
+    'inceptionv4',
+    'inceptionresnetv2',
 ]
 
 
@@ -32,10 +32,10 @@ inceptionv3_config = {
 
 inceptionv4_config = {
     'source_model': 'inceptionv4',
-    'batch_size': 16,
+    'batch_size': 32,
 }
 
 inceptionresnetv2_config = {
     'source_model': 'inceptionresnetv2',
-    'batch_size': 10,
+    'batch_size': 32,
 }
