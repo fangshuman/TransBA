@@ -65,8 +65,8 @@ class SGM_Attack(object):
 
 
 class SGM_Attack_for_ResNet(SGM_Attack):
-    def __init__(self, model, loss_fn, eps=0.05, nb_iter=10, eps_iter=0.005, gamma=0.2, target=False):
-        super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, gamma=gamma, target=target)
+    def __init__(self, model, loss_fn, eps=0.05, nb_iter=10, eps_iter=0.005, gamma=0.2, target=False, awp=False):
+        super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, gamma=gamma, target=target, awp=awp)
 
     def register_hook(self):
         # only use ResNet-50
@@ -83,8 +83,8 @@ class SGM_Attack_for_ResNet(SGM_Attack):
 
 
 class SGM_Attack_for_DenseNet(SGM_Attack):
-    def __init__(self, model, loss_fn, eps=0.05, nb_iter=10, eps_iter=0.005, gamma=0.5, target=False):
-        super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, gamma=gamma, target=target)
+    def __init__(self, model, loss_fn, eps=0.05, nb_iter=10, eps_iter=0.005, gamma=0.5, target=False, awp=False):
+        super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, gamma=gamma, target=target, awp=awp)
 
     def register_hook(self):
         # There are 2 ReLU in Conv module DenseNet-121

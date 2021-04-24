@@ -1,8 +1,8 @@
 # source model
 source_model_names = [
-    # 'vgg16',
-    # 'resnet50',
-    # 'densenet121',
+    'vgg16',
+    'resnet50',
+    'densenet121',
     'inceptionv3',
     'inceptionv4',
     'inceptionresnetv2',
