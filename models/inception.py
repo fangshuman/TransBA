@@ -189,7 +189,8 @@ class Inception3(nn.Module):
         # N x 2048
         x = self.fc(x)
         # N x 1000 (num_classes)
-        return x, aux
+        
+        return x
 
     @torch.jit.unused
     def eager_outputs(self, x: torch.Tensor, aux: Optional[Tensor]) -> InceptionOutputs:

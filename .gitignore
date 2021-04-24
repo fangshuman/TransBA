@@ -4,6 +4,7 @@ output/
 output_5000/
 output_log/
 output_clean_preds/
+output_clean_preds_png/
 output_clean_preds_1000/
 output_clean_preds_5000/
 data/
@@ -17,4 +18,8 @@ main_.py
 *.csv
 *.txt
 *.log
+*.ipynb
+*.png
+*.JPEG
+
 

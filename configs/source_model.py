@@ -22,7 +22,7 @@ resnet50_config = {
 
 densenet121_config = {
     'source_model': 'densenet121',
-    'batch_size': 64,
+    'batch_size': 32,
 }
 
 inceptionv3_config = {
