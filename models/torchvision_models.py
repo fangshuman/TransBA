@@ -299,7 +299,8 @@ def inceptionv3(num_classes=1000, pretrained='imagenet'):
         if self.training and self.aux_logits:
             aux = self._out_aux
             self._out_aux = None
-            return x, aux
+            #return x, aux
+            return x
         return x
 
     def forward(self, input):

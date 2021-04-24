@@ -48,8 +48,11 @@ def get_args():
     parser.add_argument('--decay-factor', type=float, help='for mi-fgsm')
     parser.add_argument('--gamma', type=float, help='for sgm gamma < 1.0')
     parser.add_argument('--ila-layer', type=int, help='for ila')
-    parser.add_argument('--print-freq', type=int, default=10, help='print frequency')
+    parser.add_argument('--step_size_pgd', type=float, help='for ila')
+    parser.add_argument('--step_size_ila', type=float, help='for ila')
+    parser.add_argument('--print-freq', type=float, default=10, help='print frequency')
     parser.add_argument('--not-valid', help='validate adversarial example', action='store_true')
+    parser.add_argument('--awp', default=False, action='store_true')
     
     args = parser.parse_args()
 
@@ -170,11 +173,16 @@ def valid_model_with_adversarial_example(arch, args):
 
 def main():    
     _args = get_args()
-    output_root_dir = os.path.join(_args.output_dir, _args.attack_method)
+
+    if _args.awp:
+        output_root_dir = os.path.join(_args.output_dir + '_awp', _args.attack_method + '_eps' + str(_args.eps))
+        logger_path = os.path.join('output_awp_log', _args.attack_method + '_eps' + str(_args.eps) + '.log')
+    else:
+        output_root_dir = os.path.join(_args.output_dir, _args.attack_method + '_eps' + str(_args.eps))
+        logger_path = os.path.join('output_log', _args.attack_method + '_eps' + str(_args.eps) + '.log')
+    
     if not os.path.exists(output_root_dir):
         os.mkdir(output_root_dir)
-    
-    logger_path = os.path.join('output_log', _args.attack_method + '.log')
     # if os.path.exists(logger_path):
     #    os.remove(logger_path)
     logger = logging.getLogger(__name__)
@@ -195,6 +203,9 @@ def main():
     for i, source_model_name in enumerate(configs.source_model_names):
         print(source_model_name)
         acc_list = []
+
+        if _args.attack_method == 'sgm' and source_model_name not in ['resnet50', 'densenet121']:
+            continue
 
         config_str = source_model_name + '_' + _args.attack_method + '_config'
         
@@ -217,8 +228,9 @@ def main():
             logger.info(args)
             logger.info(args.nb_iter)
 
-            # args.eps = args.eps / 255.0
-            # args.eps_iter = args.eps_iter / 255.0
+            if args.eps > 0:
+                args.eps = args.eps / 255.0
+                args.eps_iter = args.eps_iter / 255.0
             
             # begin attack
             logger.info(f'[{i+1} / {len(configs.source_model_names)}] source model: {source_model_name}')
@@ -238,6 +250,7 @@ def main():
 
         for a in acc_list:
             print(f'{a:.2f}', end='\t')
+        print()
 
     '''
     for target_model_name in configs.target_model_names:

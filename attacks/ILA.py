@@ -5,6 +5,8 @@ from .base import I_FGSM_Attack
 
 
 def get_source_layers(model_name, model):
+    model = model.model
+    
     if model_name == 'vgg16':  # 0...43
         # exclude relu, maxpool
         return list(enumerate(map(lambda name: (name, model._modules.get('_features')._modules.get(name)), ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43'])))
@@ -93,9 +95,6 @@ class ILA_Attack(object):
 
         # ila attack
         ila_nb_iter = self.nb_iter - pgd_nb_iter
-        x_2 = x.clone()      # x"
-        x_1 = x_adv.clone()  # x'
-        x_0 = x.clone()      # x
         
         def get_mid_output(m, i, o):
             global mid_output
@@ -104,25 +103,23 @@ class ILA_Attack(object):
         feature_layer = self.get_feature_layer()
         h = feature_layer.register_forward_hook(get_mid_output)
 
-        out_0 = self.model(x_0)
+        out_0 = self.model(x.data)
         mid_output_0 = torch.zeros_like(mid_output)
         mid_output_0.copy_(mid_output)  # F_l(x)
 
-        out_1 = self.model(x_1)
+        out_1 = self.model(x_adv.data)
         mid_output_1 = torch.zeros_like(mid_output)
         mid_output_1.copy_(mid_output)  # F_l(x')
             
-        delta_ila = torch.zeros_like(x_2)
+        delta_ila = torch.zeros_like(x)
         delta_ila.requires_grad_()
         
         for i in range(ila_nb_iter):
-            out_2 = self.model(x_2 + delta_ila)
-            mid_output_2 = torch.zeros_like(mid_output)
-            mid_output_2.copy_(mid_output)  # F_l(x")
+            out_2 = self.model(x + delta_ila)
 
             loss = ILAProjLoss()(
                 mid_output_1.detach(), 
-                mid_output_2, 
+                mid_output, 
                 mid_output_0.detach(), 
             )
             if self.target:
@@ -133,11 +130,13 @@ class ILA_Attack(object):
             grad_sign = delta_ila.grad.data.sign()
             delta_ila.data = delta_ila.data + self.step_size_ila * grad_sign
             delta_ila.data = torch.clamp(delta_ila.data, -self.eps, self.eps)
-            delta_ila.data = torch.clamp(x_2.data + delta_ila, 0., 1.) - x_2
+            delta_ila.data = torch.clamp(x.data + delta_ila, 0., 1.) - x
 
             delta_ila.grad.data.zero_()
         
-        x_adv_2 = torch.clamp(x_2 + delta_ila, 0., 1.)
+        h.remove()
+        
+        x_adv_2 = torch.clamp(x + delta_ila, 0., 1.)
 
         return x_adv_2
 

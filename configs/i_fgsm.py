@@ -7,6 +7,7 @@ i_fgsm_base = {
     'eps_iter': 1.6 / 255,
     'gamma': 1.,  # using sgm when gamma < 1.0
     'batch_size_coeff': 1.,
+    'awp': False,
 }
 
 i_fgsm_config = {
@@ -33,6 +34,39 @@ i_fgsm_config = {
     'inceptionresnetv2_i_fgsm_config': {
         **i_fgsm_base,
         **inceptionresnetv2_config,
+    },
+}
+
+i_fgsm_awp_config = {
+    'vgg16_i_fgsm_awp_config': {
+        **i_fgsm_base,
+        **vgg16_config,
+        'awp': True,
+    },
+    'resnet50_i_fgsm_awp_config': {
+        **i_fgsm_base,
+        **resnet50_config,
+        'awp': True,
+    },
+    'densenet121_i_fgsm_awp_config': {
+        **i_fgsm_base,
+        **densenet121_config,
+        'awp': True,
+    },
+    'inceptionv3_i_fgsm_awp_config': {
+        **i_fgsm_base,
+        **inceptionv3_config,
+        'awp': True,
+    },
+    'inceptionv4_i_fgsm_awp_config': {
+        **i_fgsm_base,
+        **inceptionv4_config,
+        'awp': True,
+    },
+    'inceptionresnetv2_i_fgsm_awp_config': {
+        **i_fgsm_base,
+        **inceptionresnetv2_config,
+        'awp': True,
     },
 }
 
@@ -72,6 +106,40 @@ ti_fgsm_config = {
     },
 }
 
+ti_fgsm_awp_config = {
+    'vgg16_ti_fgsm_awp_config': {
+        **ti_fgsm_config_base,
+        **vgg16_config,
+        'awp': True,
+    },
+    'resnet50_ti_fgsm_awp_config': {
+        **ti_fgsm_config_base,
+        **resnet50_config,
+        'awp': True,
+    },
+    'densenet121_ti_fgsm_awp_config': {
+        **ti_fgsm_config_base,
+        **densenet121_config,
+        'awp': True,
+    },
+    'inceptionv3_ti_fgsm_awp_config': {
+        **ti_fgsm_config_base,
+        **inceptionv3_config,
+        'awp': True,
+    },
+    'inceptionv4_ti_fgsm_awp_config': {
+        **ti_fgsm_config_base,
+        **inceptionv4_config,
+        'awp': True,
+    },
+    'inceptionresnetv2_ti_fgsm_awp_config': {
+        **ti_fgsm_config_base,
+        **inceptionresnetv2_config,
+        'awp': True,
+    },
+}
+
+
 
 
 # di2-fgsm
@@ -91,12 +159,11 @@ di_fgsm_config = {
     },
     'densenet121_di_fgsm_config': {
         **di_fgsm_config_base,
-        'source_model_name': 'densenet121',
-        'batch_size': 32,
+        **densenet121_config,
     },
     'inceptionv3_di_fgsm_config': {
         **di_fgsm_config_base,
-        **densenet121_config,
+        **inceptionv3_config,
     },
     'inceptionv4_di_fgsm_config': {
         **di_fgsm_config_base,
@@ -105,6 +172,39 @@ di_fgsm_config = {
     'inceptionresnetv2_di_fgsm_config': {
         **di_fgsm_config_base,
         **inceptionresnetv2_config,
+    },
+}
+
+di_fgsm_awp_config = {
+    'vgg16_di_fgsm_awp_config': {
+        **di_fgsm_config_base,
+        **vgg16_config,
+        'awp': True,
+    },
+    'resnet50_di_fgsm_awp_config': {
+        **di_fgsm_config_base,
+        **resnet50_config,
+        'awp': True,
+    },
+    'densenet121_di_fgsm_awp_config': {
+        **di_fgsm_config_base,
+        **densenet121_config,
+        'awp': True,
+    },
+    'inceptionv3_di_fgsm_awp_config': {
+        **di_fgsm_config_base,
+        **inceptionv3_config,
+        'awp': True,
+    },
+    'inceptionv4_di_fgsm_awp_config': {
+        **di_fgsm_config_base,
+        **inceptionv4_config,
+        'awp': True,
+    },
+    'inceptionresnetv2_di_fgsm_awp_config': {
+        **di_fgsm_config_base,
+        **inceptionresnetv2_config,
+        'awp': True,
     },
 }
 
@@ -127,12 +227,11 @@ mi_fgsm_config = {
     },
     'densenet121_mi_fgsm_config': {
         **mi_fgsm_config_base,
-        'source_model_name': 'densenet121',
-        'batch_size': 32,
+        **densenet121_config,
     },
     'inceptionv3_mi_fgsm_config': {
         **mi_fgsm_config_base,
-        **densenet121_config,
+        **inceptionv3_config,
     },
     'inceptionv4_mi_fgsm_config': {
         **mi_fgsm_config_base,
@@ -144,3 +243,35 @@ mi_fgsm_config = {
     },
 }
 
+mi_fgsm_awp_config = {
+    'vgg16_mi_fgsm_awp_config': {
+        **mi_fgsm_config_base,
+        **vgg16_config,
+        'awp': True,
+    },
+    'resnet50_mi_fgsm_awp_config': {
+        **mi_fgsm_config_base,
+        **resnet50_config,
+        'awp': True,
+    },
+    'densenet121_mi_fgsm_awp_config': {
+        **mi_fgsm_config_base,
+        **densenet121_config,
+        'awp': True,
+    },
+    'inceptionv3_mi_fgsm_awp_config': {
+        **mi_fgsm_config_base,
+        **inceptionv3_config,
+        'awp': True,
+    },
+    'inceptionv4_mi_fgsm_awp_config': {
+        **mi_fgsm_config_base,
+        **inceptionv4_config,
+        'awp': True,
+    },
+    'inceptionresnetv2_mi_fgsm_awp_config': {
+        **mi_fgsm_config_base,
+        **inceptionresnetv2_config,
+        'awp': True,
+    },
+}

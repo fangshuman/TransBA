@@ -6,7 +6,8 @@ ila_base = {
     'step_size_pgd': 0.008,
     'step_size_ila': 0.01,
     'gamma': 1.,   # using sgm when gamma < 1.0
-    'batch_size_coeff': 0.5,  # reduce batch size
+    'batch_size_coeff': 0.3,  # reduce batch size
+    'awp': False,
 }
 
 ila_config = {
