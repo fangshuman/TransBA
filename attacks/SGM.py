@@ -56,6 +56,9 @@ class SGM_Attack(object):
 
             delta.grad.data.zero_()
 
+            if self.awp is not None:
+                self.awp.restore(diff)
+
         x_adv = torch.clamp(x + delta, 0., 1.)
         return x_adv
 
