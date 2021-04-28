@@ -77,7 +77,8 @@ class SGM_Attack_for_ResNet(SGM_Attack):
         for name, module in self.model.named_modules():
             if 'relu' in name and not '0.relu' in name:
                 module.register_backward_hook(backward_hook_sgm)
-            if len(name.split('.')) >= 2 and 'layer' in name.split('.')[-2]:
+            #if len(name.split('.')) >= 2 and 'layer' in name.split('.')[-2]:
+            if len(name.split('.')) > 2 and 'layer' in name.split('.')[0]:
                 module.register_backward_hook(self.backward_hook_norm)
 
 

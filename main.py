@@ -254,6 +254,10 @@ def main():
             logger.info(args)
             logger.info(args.nb_iter)
 
+            if args.eps > 1:
+                args.eps = args.eps / 255.0
+                args.eps_iter = args.eps_iter / 255.0
+            
             # begin attack
             logger.info(
                 f"[{i+1} / {len(configs.source_model_names)}] source model: {source_model_name}"
