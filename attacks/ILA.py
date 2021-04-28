@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from .base import I_FGSM_Attack
+from .basic import I_FGSM_Attack
 
 
 def get_source_layers(model_name, model):
