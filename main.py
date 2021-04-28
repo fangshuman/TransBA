@@ -228,7 +228,7 @@ def main():
             logger.info(args)
             logger.info(args.nb_iter)
 
-            if args.eps > 0:
+            if args.eps > 1:
                 args.eps = args.eps / 255.0
                 args.eps_iter = args.eps_iter / 255.0
             
