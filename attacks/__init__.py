@@ -3,7 +3,6 @@ from .SGM import *
 from .ILA import *
 from .basic import *
 
-from advertorch.attacks import LinfPGDAttack
 
 def get_attack(attack, model, loss_fn, args):
     if attack == 'i_fgsm':
