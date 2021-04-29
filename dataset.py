@@ -17,12 +17,11 @@ class ImageNetDataset(torch.utils.data.Dataset):
         self.phase = phase
 
         if phase == "cln":
-            self.image_list = [item for item in self.image_list if "png" in item]
+            self.image_list = [item for item in self.image_list if "png" or "JPEG" in item]
             self.transform = transforms.Compose(
                 [
                     transforms.Resize(int(size / 0.875)),
                     transforms.CenterCrop(size),
-                    # transforms.Resize(size),
                     transforms.ToTensor(),
                 ]
             )
@@ -31,6 +30,7 @@ class ImageNetDataset(torch.utils.data.Dataset):
             self.transform = transforms.Compose(
                 [transforms.Resize(size), transforms.ToTensor()]
             )
+        
         # assert len(self.image_list) == total
         if total is None:
             total = len(self.image_list)
@@ -45,11 +45,6 @@ class ImageNetDataset(torch.utils.data.Dataset):
             with Image.open(f) as image:
                 image = image.convert("RGB")
         image = self.transform(image)
-
-        # if self.phase == 'cln':
-        #     label = self.class_to_idx[self.image_list[index].split('_')[0]]
-        # elif self.phase == 'adv':
-        #     label = self.class_to_idx[index]
         label = self.class_to_idx[self.image_list[index].split("_")[0]]
 
         return image, label, index
