@@ -61,8 +61,7 @@ def get_attack(attack, model, loss_fn, args):
                                          nb_iter=args.nb_iter,
                                          eps_iter=args.eps_iter,
                                          gamma=args.gamma,
-                                         target=args.target,
-                                         awp=args.awp)
+                                         target=args.target,)
         elif args.source_model == 'densenet121':
             return SGM_Attack_for_DenseNet(model=model,
                                            loss_fn=loss_fn,
@@ -70,8 +69,7 @@ def get_attack(attack, model, loss_fn, args):
                                            nb_iter=args.nb_iter,
                                            eps_iter=args.eps_iter,
                                            gamma=args.gamma,
-                                           target=args.target,
-                                           awp=args.awp)
+                                           target=args.target,)
         else:
             raise NotImplementedError("Current code only supports resnet50/densenet121. Please check souce model name.")
 
