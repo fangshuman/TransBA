@@ -184,3 +184,4 @@ class MI_FGSM_Attack(I_FGSM_Attack):
     def perturb(self, x, y):
         self.g = torch.zeros_like(x)
         return super().perturb(x, y)
+

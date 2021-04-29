@@ -54,15 +54,7 @@ def get_attack(attack, model, loss_fn, args):
                           target=args.target)
 
     elif attack == 'sgm':
-        if 'vgg' in args.source_model:
-            return SGM_Attack_for_VGG(model=model,
-                                      loss_fn=loss_fn,
-                                      eps=args.eps,
-                                      nb_iter=args.nb_iter,
-                                      eps_iter=args.eps_iter,
-                                      gamma=args.gamma,
-                                      target=args.targe)
-        elif args.source_model == 'resnet50':
+        if args.source_model == 'resnet50':
             return SGM_Attack_for_ResNet(model=model,
                                          loss_fn=loss_fn,
                                          eps=args.eps,
@@ -80,33 +72,8 @@ def get_attack(attack, model, loss_fn, args):
                                            gamma=args.gamma,
                                            target=args.target,
                                            awp=args.awp)
-        elif args.source_model == 'inceptionv3':
-            return SGM_Attack_for_InceptionV3(model=model,
-                                              loss_fn=loss_fn,
-                                              eps=args.eps,
-                                              nb_iter=args.nb_iter,
-                                              eps_iter=args.eps_iter,
-                                              gamma=args.gamma,
-                                              target=args.target,)
-        elif args.source_model == 'inceptionv4':
-            return SGM_Attack_for_InceptionV4(model=model,
-                                              loss_fn=loss_fn,
-                                              eps=args.eps,
-                                              nb_iter=args.nb_iter,
-                                              eps_iter=args.eps_iter,
-                                              gamma=args.gamma,
-                                              target=args.target,)
-        elif args.source_model == 'inceptionresnetv2':
-            return SGM_Attack_for_InceptionResNetV2(model=model,
-                                                    loss_fn=loss_fn,
-                                                    eps=args.eps,
-                                                    nb_iter=args.nb_iter,
-                                                    eps_iter=args.eps_iter,
-                                                    gamma=args.gamma,
-                                                    target=args.target,
-)
         else:
-            raise NotImplementedError("Current code only supports vgg/resnet/densenet/inceptionv3/inceptionv4/inceptionresnetv2. Please check souce model name.")
+            raise NotImplementedError("Current code only supports resnet50/densenet121. Please check souce model name.")
 
     elif attack == 'linbp':
         pass

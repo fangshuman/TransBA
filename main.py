@@ -15,6 +15,7 @@ from models import make_model
 from dataset import make_loader, save_image
 from attacks import get_attack
 
+
 seed = 0
 random.seed(seed)
 os.environ["PYTHONHASHSEED"] = str(seed)
@@ -33,8 +34,8 @@ def get_args():
     parser.add_argument(
         "--attack-method", type=str, default="i_fgsm", choices=configs.attack_methods
     )
-    # parser.add_argument('--source-model', type=str, default='vgg16', choices=configs.source_model_names)
-    # parser.add_argument('--target-model', type=str, choices=target_model_names)
+    parser.add_argument("--source-model", nargs="+", default=configs.source_model_names)
+    parser.add_argument('--target-model', nargs="+", default=configs.target_model_names)
     parser.add_argument("--batch-size", type=int)
     parser.add_argument("--total-num", type=int, default=1000)
     parser.add_argument(
@@ -163,7 +164,7 @@ def valid_model_with_adversarial_example(arch, args, _advs=None, _labels=None):
         image_dir=args.output_dir,
         label_dir=os.path.join("imagenet_class_to_idx.npy"),
         phase="adv",
-        batch_size=configs.val_batch_size[arch],
+        batch_size=configs.target_model_batch_size[arch],
         total=args.total_num,
         size=size,
     )
@@ -185,8 +186,11 @@ def valid_model_with_adversarial_example(arch, args, _advs=None, _labels=None):
 def main():
     _args = get_args()
     print(_args)
+    assert set(_args.source_model).issubset(set(configs.source_model_names))
+    assert set(_args.target_model).issubset(set(configs.target_model_names))
+
     white_arguments = ['attack_method', 'total_num', 'target', 'eps', 'nb_iter', 'eps_iter']
-    black_arguments = ['input_dir', 'output_dir', 'print_freq', 'not_valid']
+    black_arguments = ['input_dir', 'output_dir', 'print_freq', 'not_valid', 'source_model', 'target_model']
     log_name = []
     for a in white_arguments:
         v = getattr(_args, a)
@@ -219,60 +223,45 @@ def main():
         ],
     )
 
-    all_configs = getattr(configs, _args.attack_method + "_config")
 
     # generate adversarial examples
     logger.info(f"Generate adversarial examples with {_args.attack_method}")
-    for i, source_model_name in enumerate(configs.source_model_names):
+    for i, source_model_name in enumerate(_args.source_model):
         logger.info(f"Attacking {source_model_name}...")
+
+        # make output dir
+        output_dir = os.path.join(output_root_dir, source_model_name)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        _args.output_dir = output_dir
+
+        # load config
+        source_model_config = getattr(configs, source_model_name + "_config")
+        attack_method_config = getattr(configs, _args.attack_method + "_base")
+        args = vars(_args)
+        args = {
+            **source_model_config,
+            **attack_method_config, 
+            **{k: args[k] for k in args if (args[k] is not None and '_model' not in k)}
+        }
+        args = Parameters(args)
+
+        # begin attack
+        logger.info(
+            f"[{i+1} / {len(configs.source_model_names)}] source model: {source_model_name}"
+        )
+        attack_source_model(source_model_name, args)
+        logger.info(f"Attack finished.")
+
+        # validate
         acc_list = []
-
-        if _args.attack_method == "sgm" and source_model_name not in [
-            "resnet50",
-            "densenet121",
-        ]:
-            continue
-
-        config_str = source_model_name + "_" + _args.attack_method + "_config"
-
-        if config_str in all_configs:
-            config = all_configs[config_str]
-
-            # make output dir
-            output_dir = os.path.join(output_root_dir, source_model_name)
-            # output_dir = os.path.join(output_root_dir, source_model_name + '_gamma' + str(_args.gamma))
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-            _args.output_dir = output_dir
-
-            # load config
-            args = vars(_args)
-            args = {**config, **{k: args[k] for k in args if args[k] is not None}}
-            args = Parameters(args)
-
-            logger.info(str(datetime.now())[:-7])
-            logger.info(args)
-            logger.info(args.nb_iter)
-
-            if args.eps > 1:
-                args.eps = args.eps / 255.0
-                args.eps_iter = args.eps_iter / 255.0
-            
-            # begin attack
-            logger.info(
-                f"[{i+1} / {len(configs.source_model_names)}] source model: {source_model_name}"
-            )
-            attack_source_model(source_model_name, args)
-            logger.info(f"Attack finished.")
-
-            # validate
-            if not args.not_valid:
-                for target_model_name in configs.target_model_names:
-                    logger.info(f"Transfer to {target_model_name}..")
-                    acc = valid_model_with_adversarial_example(target_model_name, args)
-                    acc_list.append(acc)
-                    logger.info(f"acc: {acc:.2f}%")
-                    logger.info(f"Transfer done.")
+        if not args.not_valid:
+            for target_model_name in _args.target_model:
+                logger.info(f"Transfer to {target_model_name}..")
+                acc = valid_model_with_adversarial_example(target_model_name, args)
+                acc_list.append(acc)
+                logger.info(f"acc: {acc:.2f}%")
+                logger.info(f"Transfer done.")
 
         torch.cuda.empty_cache()
 

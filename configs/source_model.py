@@ -1,6 +1,6 @@
 # source model
 source_model_names = [
-    'vgg16',
+    'vgg16_bn',
     'resnet50',
     'densenet121',
     'inceptionv3',
@@ -10,8 +10,8 @@ source_model_names = [
 
 
 # target model config
-vgg16_config = {
-    'source_model': 'vgg16',
+vgg16_bn_config = {
+    'source_model': 'vgg16_bn',
     'batch_size': 32,
 }
 
