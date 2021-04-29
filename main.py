@@ -58,6 +58,9 @@ def get_args():
     parser.add_argument(
         "--not-valid", help="validate adversarial example", action="store_true"
     )
+    parser.add_argument(
+        "--inputfolder", help="input dataset in folder dataset", action="store_true"
+    )
 
     args = parser.parse_args()
 
@@ -96,7 +99,7 @@ def attack_source_model(arch, args, is_to_save=True):
     batch_size = int(args.batch_size * args.batch_size_coeff)
     img_list, data_loader = make_loader(
         image_dir=args.input_dir,
-        label_dir="imagenet_class_to_idx.npy",
+        label_dir=None if args.inputfolder else "imagenet_class_to_idx.npy",
         phase="cln",
         batch_size=batch_size,
         total=args.total_num,
@@ -162,7 +165,7 @@ def valid_model_with_adversarial_example(arch, args, _advs=None, _labels=None):
 
     _, data_loader = make_loader(
         image_dir=args.output_dir,
-        label_dir=os.path.join("imagenet_class_to_idx.npy"),
+        label_dir="imagenet_class_to_idx.npy",
         phase="adv",
         batch_size=configs.target_model_batch_size[arch],
         total=args.total_num,
@@ -190,7 +193,7 @@ def main():
     assert set(_args.target_model).issubset(set(configs.target_model_names))
 
     white_arguments = ['attack_method', 'total_num', 'target', 'eps', 'nb_iter', 'eps_iter']
-    black_arguments = ['input_dir', 'output_dir', 'print_freq', 'not_valid', 'source_model', 'target_model']
+    black_arguments = ['input_dir', 'output_dir', 'source_model', 'target_model', 'print_freq', 'not_valid', 'inputfolder']
     log_name = []
     for a in white_arguments:
         v = getattr(_args, a)
