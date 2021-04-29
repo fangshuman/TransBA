@@ -251,7 +251,7 @@ def main():
 
         # begin attack
         logger.info(
-            f"[{i+1} / {len(configs.source_model_names)}] source model: {source_model_name}"
+            f"[{i+1} / {len(_args.source_model)}] source model: {source_model_name}"
         )
         attack_source_model(source_model_name, args)
         logger.info(f"Attack finished.")
