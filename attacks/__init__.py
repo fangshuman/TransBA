@@ -1,46 +1,60 @@
-from .base import *
-from .SGM import *
-from .ILA import *
 from .basic import *
+from .sgm import *
+from .ila import *
+from .vi_fgsm import *
+from .multi import *
 
-from advertorch.attacks import LinfPGDAttack
 
 def get_attack(attack, model, loss_fn, args):
-    if attack == 'i_fgsm':
-        return I_FGSM_Attack(model=model,
-                             loss_fn=loss_fn,
-                             eps=args.eps,
-                             nb_iter=args.nb_iter,
-                             eps_iter=args.eps_iter,
-                             target=args.target)
+    # if attack == 'i_fgsm':
+    #     return I_FGSM_Attack(model=model,
+    #                          loss_fn=loss_fn,
+    #                          eps=args.eps,
+    #                          nb_iter=args.nb_iter,
+    #                          eps_iter=args.eps_iter,
+    #                          target=args.target)
 
-    elif attack == 'ti_fgsm':
-        return TI_FGSM_Attack(model=model,
-                              loss_fn=loss_fn,
-                              eps=args.eps,
-                              nb_iter=args.nb_iter,
-                              eps_iter=args.eps_iter,
-                              kernlen=args.kernlen,
-                              nsig=args.nsig,
-                              target=args.target,)
+    # elif attack == 'ti_fgsm':
+    #     return TI_FGSM_Attack(model=model,
+    #                           loss_fn=loss_fn,
+    #                           eps=args.eps,
+    #                           nb_iter=args.nb_iter,
+    #                           eps_iter=args.eps_iter,
+    #                           kernlen=args.kernlen,
+    #                           nsig=args.nsig,
+    #                           target=args.target,)
 
-    elif attack == 'di_fgsm':
-        return DI_FGSM_Attack(model=model,
-                              loss_fn=loss_fn,
-                              eps=args.eps,
-                              nb_iter=args.nb_iter,
-                              eps_iter=args.eps_iter,
-                              prob=args.prob,
-                              target=args.target,)
+    # elif attack == 'di_fgsm':
+    #     return DI_FGSM_Attack(model=model,
+    #                           loss_fn=loss_fn,
+    #                           eps=args.eps,
+    #                           nb_iter=args.nb_iter,
+    #                           eps_iter=args.eps_iter,
+    #                           prob=args.prob,
+    #                           target=args.target,)
 
-    elif attack == 'mi_fgsm':
-        return MI_FGSM_Attack(model=model,
-                              loss_fn=loss_fn,
-                              eps=args.eps,
-                              nb_iter=args.nb_iter,
-                              eps_iter=args.eps_iter,
-                              decay_factor=args.decay_factor,
-                              target=args.target,)
+    # elif attack == 'mi_fgsm':
+    #     return MI_FGSM_Attack(model=model,
+    #                           loss_fn=loss_fn,
+    #                           eps=args.eps,
+    #                           nb_iter=args.nb_iter,
+    #                           eps_iter=args.eps_iter,
+    #                           decay_factor=args.decay_factor,
+    #                           target=args.target,)
+    
+    # elif attack == 'vmi_fgsm':
+    #     return VMI_FGSM_Attack(model=model,
+    #                           loss_fn=loss_fn,
+    #                           eps=args.eps,
+    #                           nb_iter=args.nb_iter,
+    #                           eps_iter=args.eps_iter,
+    #                           decay_factor=args.decay_factor,
+    #                           sample_n=args.sample_n,
+    #                           sample_beta=args.sample_beta,
+    #                           target=args.target,)
+    
+    if attack.endswith('fgsm'):
+        return Multi_I_FGSM_Attack(attack, model, loss_fn, args)
 
     elif attack == 'ila':
         return ILA_Attack(model_name=args.source_model,
@@ -73,8 +87,6 @@ def get_attack(attack, model, loss_fn, args):
         else:
             raise NotImplementedError("Current code only supports resnet50/densenet121. Please check souce model name.")
 
-    elif attack == 'linbp':
-        pass
 
     else:
         raise NotImplementedError(f"No such attack method: {attack}")

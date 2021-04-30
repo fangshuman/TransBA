@@ -32,7 +32,8 @@ def get_args():
     parser.add_argument("--input-dir", type=str, default="dataset_1000")
     parser.add_argument("--output-dir", type=str, default="output")
     parser.add_argument(
-        "--attack-method", type=str, default="i_fgsm", choices=configs.attack_methods
+        "--attack-method", type=str, default="i_fgsm", 
+        # choices=configs.attack_methods
     )
     parser.add_argument("--source-model", nargs="+", default=configs.source_model_names)
     parser.add_argument('--target-model', nargs="+", default=configs.target_model_names)
@@ -96,7 +97,8 @@ def attack_source_model(arch, args, is_to_save=True):
     model = model.cuda()
 
     # create dataloader
-    batch_size = int(args.batch_size * args.batch_size_coeff)
+    #batch_size = int(args.batch_size * args.batch_size_coeff)
+    batch_size = args.batch_size
     img_list, data_loader = make_loader(
         image_dir=args.input_dir,
         label_dir=None if args.inputfolder else "imagenet_class_to_idx.npy",
@@ -240,7 +242,10 @@ def main():
 
         # load config
         source_model_config = getattr(configs, source_model_name + "_config")
-        attack_method_config = getattr(configs, _args.attack_method + "_base")
+        if _args.attack_method.endswith("_fgsm"):
+            attack_method_config = getattr(configs, "fgsm_base")
+        else:
+            attack_method_config = getattr(configs, _args.attack_method + "_base")
         args = vars(_args)
         args = {
             **source_model_config,
@@ -251,7 +256,7 @@ def main():
 
         # begin attack
         logger.info(
-            f"[{i+1} / {len(configs.source_model_names)}] source model: {source_model_name}"
+            f"[{i+1} / {len(_args.source_model)}] source model: {source_model_name}"
         )
         attack_source_model(source_model_name, args)
         logger.info(f"Attack finished.")

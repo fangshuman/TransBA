@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import scipy.stats as st
 
 from .base import Attack
-
+from .utils import normalize_by_pnorm
 
 class I_FGSM_Attack(Attack):
     def __init__(
@@ -23,25 +23,37 @@ class I_FGSM_Attack(Attack):
         self.eps_iter = eps_iter
         self.target = target
 
+    def init_extra_var(self, x):
+        pass
+
     def preprocess(self, x, delta, y):
-        return delta
+        return x, delta
 
     def postprocess(self, x, delta, y):
         pass
 
-    def grad_postprocess(self, grad):
-        return grad.sign()
-
-    def perturb_one_iter(self, x, delta, y):
+    def grad_preprocess(self, x, delta, y):
         outputs = self.model(x + delta)
         loss = self.loss_fn(outputs, y)
         if self.target:
             loss = -loss
 
         loss.backward()
+        return delta.grad.data
+
+    def grad_processing(self, grad):
+        return grad
+
+    def grad_postprocess(self, grad):
+        return grad.sign()
+
+    def perturb_one_iter(self, x, delta, y):
+        grad = self.grad_preprocess(x, delta, y)
 
         # TODO: L_inf only now.
-        grad_sign = self.grad_postprocess(delta.grad.data)
+        grad = self.grad_processing(grad)
+        grad_sign = self.grad_postprocess(grad)
+
         delta.data = delta.data + self.eps_iter * grad_sign
         delta.data = torch.clamp(delta.data, -self.eps, self.eps)
         delta.data = torch.clamp(x.data + delta, 0.0, 1.0) - x
@@ -50,11 +62,12 @@ class I_FGSM_Attack(Attack):
         return delta
 
     def perturb(self, x, y):
+        self.init_extra_var(x)
         delta = torch.zeros_like(x)
         delta.requires_grad_()
 
         for i in range(self.nb_iter):
-            delta = self.preprocess(x, delta, y)
+            x, delta = self.preprocess(x, delta, y)
 
             delta = self.perturb_one_iter(x, delta, y)
             delta.requires_grad_(True)
@@ -144,9 +157,7 @@ class DI_FGSM_Attack(I_FGSM_Attack):
 
     def preprocess(self, x, delta, y):
         x_d = self.input_diversity(x + delta)
-        d = (x_d) - x
-        d.requires_grad_(True)
-        return d
+        return x_d, delta
 
 
 class MI_FGSM_Attack(I_FGSM_Attack):
@@ -171,17 +182,19 @@ class MI_FGSM_Attack(I_FGSM_Attack):
         self.decay_factor = decay_factor
         self.g = None
 
-    def normalize_by_pnorm(x, small_constant=1e-6):
-        batch_size = x.size(0)
-        norm = x.abs().view(batch_size, -1).sum(dim=1)
-        norm = torch.max(norm, torch.ones_like(norm) * small_constant)
-        return (x.transpose(0, -1) * (1.0 / norm)).transpose(0, -1).contiguous()
+    # def normalize_by_pnorm(x, small_constant=1e-6):
+    #     batch_size = x.size(0)
+    #     norm = x.abs().view(batch_size, -1).sum(dim=1)
+    #     norm = torch.max(norm, torch.ones_like(norm) * small_constant)
+    #     return (x.transpose(0, -1) * (1.0 / norm)).transpose(0, -1).contiguous()
 
-    def grad_postprocess(self, grad):
-        self.g = self.decay_factor * self.g + MI_FGSM_Attack.normalize_by_pnorm(grad)
-        return self.g.sign()
+    def grad_processing(self, grad):
+        self.g = self.decay_factor * self.g + normalize_by_pnorm(grad, p=1)
+        return self.g
 
-    def perturb(self, x, y):
+    # def perturb(self, x, y):
+    #     self.g = torch.zeros_like(x)
+    #     return super().perturb(x, y)
+    def init_extra_var(self, x):
         self.g = torch.zeros_like(x)
-        return super().perturb(x, y)
 
