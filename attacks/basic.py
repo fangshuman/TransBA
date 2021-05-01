@@ -24,7 +24,7 @@ class I_FGSM_Attack(Attack):
         self.target = target
 
     def preprocess(self, x, delta, y):
-        return delta
+        return x, delta
 
     def postprocess(self, x, delta, y):
         pass
@@ -54,7 +54,7 @@ class I_FGSM_Attack(Attack):
         delta.requires_grad_()
 
         for i in range(self.nb_iter):
-            delta = self.preprocess(x, delta, y)
+            x, delta = self.preprocess(x, delta, y)
 
             delta = self.perturb_one_iter(x, delta, y)
             delta.requires_grad_(True)
@@ -91,10 +91,10 @@ class TI_FGSM_Attack(I_FGSM_Attack):
         kern1d = st.norm.pdf(np.linspace(-self.nsig, self.nsig, self.kernlen))
         kernel = np.outer(kern1d, kern1d)
         kernel = kernel / kernel.sum()
-        self._kernl = torch.FloatTensor(kernel).to(next(model.parameters()).device)
+        self._kernel = torch.FloatTensor(kernel).to(next(model.parameters()).device)
 
     def grad_postprocess(self, grad):
-        kernel = self.kernel.expand(
+        kernel = self._kernel.expand(
             grad.size(1), grad.size(1), self.kernlen, self.kernlen
         )
         grad_sign = (F.conv2d(grad, kernel, padding=self.kernlen // 2)).sign()
@@ -144,9 +144,7 @@ class DI_FGSM_Attack(I_FGSM_Attack):
 
     def preprocess(self, x, delta, y):
         x_d = self.input_diversity(x + delta)
-        d = (x_d) - x
-        d.requires_grad_(True)
-        return d
+        return x_d, delta
 
 
 class MI_FGSM_Attack(I_FGSM_Attack):
