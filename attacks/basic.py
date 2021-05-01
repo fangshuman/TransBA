@@ -104,10 +104,10 @@ class TI_FGSM_Attack(I_FGSM_Attack):
         kern1d = st.norm.pdf(np.linspace(-self.nsig, self.nsig, self.kernlen))
         kernel = np.outer(kern1d, kern1d)
         kernel = kernel / kernel.sum()
-        self._kernl = torch.FloatTensor(kernel).to(next(model.parameters()).device)
+        self._kernel = torch.FloatTensor(kernel).to(next(model.parameters()).device)
 
     def grad_postprocess(self, grad):
-        kernel = self.kernel.expand(
+        kernel = self._kernel.expand(
             grad.size(1), grad.size(1), self.kernlen, self.kernlen
         )
         grad_sign = (F.conv2d(grad, kernel, padding=self.kernlen // 2)).sign()

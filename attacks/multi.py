@@ -21,14 +21,15 @@ class Multi_I_FGSM_Attack(I_FGSM_Attack):
         
         # get instance
         self.method_list = {
-            'ti_fgsm': None,
-            'di_fgsm': None,
-            'mi_fgsm': None,
-            'ni_fgsm': None,
-            'si_fgsm': None,
-            'vi_fgsm': None,
+            # 'ti_fgsm': None,
+            # 'di_fgsm': None,
+            # 'mi_fgsm': None,
+            # 'ni_fgsm': None,
+            # 'si_fgsm': None,
+            # 'vi_fgsm': None,
         } 
         for m in attack_method.split("_")[:-1]:
+            # self.method_list.append(get_attack(m))
             if m == "i":
                 pass
             elif m == "di":
@@ -98,39 +99,33 @@ class Multi_I_FGSM_Attack(I_FGSM_Attack):
 
     def init_extra_var(self, x):
         for m in self.method_list:
-            if self.method_list[m] is not None:
-                self.method_list[m].init_extra_var(x)
+            self.method_list[m].init_extra_var(x)
 
     def preprocess(self, x, delta, y):
         for m in self.method_list:
-            if self.method_list[m] is not None:
-                x, delta = self.method_list[m].preprocess(x, delta, y)
+            x, delta = self.method_list[m].preprocess(x, delta, y)
         return x, delta
 
     def postprocess(self, x, delta, y):
         for m in self.method_list:
-            if self.method_list[m] is not None:
-                x, delta = self.method_list[m].preprocess(x, delta, y)
+            self.method_list[m].postprocess(x, delta, y)
 
     def grad_preprocess(self, x, delta, y):
         grad = super().grad_preprocess(x, delta, y)
         for m in self.method_list:
-            if self.method_list[m] is not None:
-                grad = self.method_list[m].grad_preprocess(x, delta, y)
+            grad = self.method_list[m].grad_preprocess(x, delta, y)
         return grad
 
     def grad_processing(self, grad):
         for m in self.method_list:
-            if self.method_list[m] is not None:
-                grad = self.method_list[m].grad_processing(grad)
+            grad = self.method_list[m].grad_processing(grad)
         return grad
 
     def grad_postprocess(self, grad):
         grad_sign = grad.sign()
         for m in self.method_list:
-            if self.method_list[m] is not None:
-                grad_sign = self.method_list[m].grad_postprocess(grad)
-        return grad.sign()
+            grad_sign = self.method_list[m].grad_postprocess(grad)
+        return grad_sign
 
 
     # def perturb(self, x, y):
