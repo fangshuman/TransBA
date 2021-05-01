@@ -40,9 +40,8 @@ class NI_FGSM_Attack(I_FGSM_Attack):
         self.g = self.decay_factor * self.g + normalize_by_pnorm(grad, p=1)
         return self.g
 
-    def perturb(self, x, y):
+    def init_extra_var(self, x):
         self.g = torch.zeros_like(x)
-        return super().perturb(x, y)
 
 
 
