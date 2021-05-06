@@ -127,6 +127,10 @@ class Multi_I_FGSM_Attack(I_FGSM_Attack):
             grad_sign = self.method_list[m].grad_postprocess(grad)
         return grad_sign
 
+    def perturb_one_iter(self, x, delta, y):
+        for m in self.method_list:
+            delta = self.method_list[m].perturb_one_iter(x, delta, y)
+        return delta
 
     # def perturb(self, x, y):
     #     import ipdb; ipdb.set_trace()
