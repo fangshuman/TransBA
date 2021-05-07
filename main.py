@@ -68,29 +68,8 @@ def get_args():
     return args
 
 
-def predict(model, data_loader):
-    model.eval()
-    total_num = 0
-    count = 0
-    # preds_ls = []
 
-    with torch.no_grad():
-        for i, (inputs, labels, indexs) in enumerate(data_loader):
-            inputs = inputs.cuda()
-            labels = labels.cuda()
-
-            output = model(inputs)
-            _, preds = torch.max(output.data, dim=1)
-            # preds_ls.append(preds.cpu())
-
-            total_num += inputs.size(0)
-            count += (preds == labels).sum().item()
-
-    # return count, total_num, preds_ls
-    return count, total_num
-
-
-def attack_source_model(arch, args, is_to_save=True):
+def attack_source_model(arch, args):
     # create model
     model = make_model(arch=arch)
     size = model.input_size[1]
@@ -113,57 +92,35 @@ def attack_source_model(arch, args, is_to_save=True):
         attack=args.attack_method, model=model, loss_fn=F.cross_entropy, args=args
     )
 
-    _advs = []
-    _labels = []
-
     # generate adversarial example
     model.eval()
     if args.gamma < 1.0:  # use Skip Gradient Method (SGM)
         attack.register_hook()
     for i, (inputs, labels, indexs) in enumerate(data_loader):
-        _labels.append(labels)
         inputs = inputs.cuda()
         labels = labels.cuda()
 
         inputs_adv = attack.perturb(inputs, labels)
-
+    
         # save adversarial example
-        if is_to_save:
-            save_image(
-                images=inputs_adv.detach().cpu().numpy(),
-                indexs=indexs,
-                img_list=img_list,
-                output_dir=args.output_dir,
-            )
-        else:
-            _advs.append(inputs_adv.detach().cpu())
+        save_image(
+            images=inputs_adv.detach().cpu().numpy(),
+            indexs=indexs,
+            img_list=img_list,
+            output_dir=args.output_dir,
+        )
 
         if i % args.print_freq == 0:
             print(f"generating: [{i} / {len(data_loader)}]")
-    return _advs, _labels
 
 
-def valid_model_with_adversarial_example(arch, args, _advs=None, _labels=None):
+def valid_model_with_adversarial_example(arch, args):
     model = make_model(arch=arch)
     size = model.input_size[1]
     model = model.cuda()
     model.eval()
     total = 0
     count = 0
-
-    if _advs is not None and len(_advs) > 0:
-        with torch.no_grad():
-            for (inputs, labels) in zip(_advs, _labels):
-                inputs = inputs.cuda()
-                labels = labels.cuda()
-
-                output = model(inputs)
-                _, preds = torch.max(output.data, dim=1)
-
-                total += inputs.size(0)
-                count += (preds == labels).sum().item()
-
-        return count * 100.0 / total
 
     _, data_loader = make_loader(
         image_dir=args.output_dir,
@@ -190,7 +147,6 @@ def valid_model_with_adversarial_example(arch, args, _advs=None, _labels=None):
 
 def main():
     _args = get_args()
-    print(_args)
     assert set(_args.source_model).issubset(set(configs.source_model_names))
     assert set(_args.target_model).issubset(set(configs.target_model_names))
 
@@ -253,6 +209,7 @@ def main():
             **{k: args[k] for k in args if (args[k] is not None and '_model' not in k)}
         }
         args = Parameters(args)
+        logger.info(args)
 
         # begin attack
         logger.info(

@@ -8,15 +8,9 @@ target_model_names = [
 
 
 # target model batch size
-# target_model_batch_size = {
-#     'vgg16_bn': 128, 
-#     'resnet50': 256, 'resnet101': 128, 'resnet152': 64,
-#     'densenet121': 256, 'densenet169': 128, 'densenet201': 128,
-#     'inceptionv3': 128, 'inceptionv4': 128, 'inceptionresnetv2': 128,
-# }
 target_model_batch_size = {
-    'vgg16_bn': 32, 
-    'resnet50': 32, 'resnet101': 32, 'resnet152': 32,
-    'densenet121': 32, 'densenet169': 32, 'densenet201': 32,
-    'inceptionv3': 32, 'inceptionv4': 32, 'inceptionresnetv2': 32,
+    'vgg16_bn': 128, 
+    'resnet50': 256, 'resnet101': 128, 'resnet152': 64,
+    'densenet121': 256, 'densenet169': 128, 'densenet201': 128,
+    'inceptionv3': 128, 'inceptionv4': 128, 'inceptionresnetv2': 128,
 }

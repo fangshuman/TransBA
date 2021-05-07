@@ -32,8 +32,12 @@ class I_FGSM_Attack(Attack):
     def postprocess(self, x, delta, y):
         pass
 
+    def get_output_x(self, x, delta, y):
+        return (x + delta)
+
     def grad_preprocess(self, x, delta, y):
-        outputs = self.model(x + delta)
+        x = self.get_output_x(x, delta, y)
+        outputs = self.model(x)
         loss = self.loss_fn(outputs, y)
         if self.target:
             loss = -loss
@@ -155,9 +159,8 @@ class DI_FGSM_Attack(I_FGSM_Attack):
             padded = F.interpolate(padded, (size, size), mode="nearest")
             return padded
 
-    def preprocess(self, x, delta, y):
-        x_d = self.input_diversity(x + delta)
-        return x_d, delta
+    def get_output_x(self, x, delta, y):
+        return self.input_diversity(x + delta)
 
 
 class MI_FGSM_Attack(I_FGSM_Attack):
@@ -182,19 +185,10 @@ class MI_FGSM_Attack(I_FGSM_Attack):
         self.decay_factor = decay_factor
         self.g = None
 
-    # def normalize_by_pnorm(x, small_constant=1e-6):
-    #     batch_size = x.size(0)
-    #     norm = x.abs().view(batch_size, -1).sum(dim=1)
-    #     norm = torch.max(norm, torch.ones_like(norm) * small_constant)
-    #     return (x.transpose(0, -1) * (1.0 / norm)).transpose(0, -1).contiguous()
-
     def grad_processing(self, grad):
         self.g = self.decay_factor * self.g + normalize_by_pnorm(grad, p=1)
         return self.g
 
-    # def perturb(self, x, y):
-    #     self.g = torch.zeros_like(x)
-    #     return super().perturb(x, y)
     def init_extra_var(self, x):
         self.g = torch.zeros_like(x)
 

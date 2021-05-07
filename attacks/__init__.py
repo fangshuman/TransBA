@@ -1,6 +1,7 @@
 from .basic import *
 from .sgm import *
 from .ila import *
+from .ni_si_fgsm import *
 from .vi_fgsm import *
 from .multi import *
 
@@ -41,20 +42,38 @@ def get_attack(attack, model, loss_fn, args):
     #                           eps_iter=args.eps_iter,
     #                           decay_factor=args.decay_factor,
     #                           target=args.target,)
-    
-    # elif attack == 'vmi_fgsm':
-    #     return VMI_FGSM_Attack(model=model,
+
+    # elif attack == 'ni_fgsm':
+    #     return NI_FGSM_Attack(model=model,
     #                           loss_fn=loss_fn,
     #                           eps=args.eps,
     #                           nb_iter=args.nb_iter,
     #                           eps_iter=args.eps_iter,
     #                           decay_factor=args.decay_factor,
-    #                           sample_n=args.sample_n,
-    #                           sample_beta=args.sample_beta,
+    #                           target=args.target,)
+    
+    # elif attack == 'si_fgsm':
+    #     return SI_FGSM_Attack(model=model,
+    #                           loss_fn=loss_fn,
+    #                           eps=args.eps,
+    #                           nb_iter=args.nb_iter,
+    #                           eps_iter=args.eps_iter,
+    #                           scale_copies=args.scale_copies,
+    #                           target=args.target,)
+
+    # elif attack == 'vi_fgsm':
+    #     return VI_FGSM_Attack(model=model,
+    #                           loss_fn=loss_fn,
+    #                           eps=args.eps,
+    #                           nb_iter=args.nb_iter,
+    #                           eps_iter=args.eps_iter,
+    #                           sample_n=args.vi_sample_n,
+    #                           sample_beta=vi_sample_beta,
     #                           target=args.target,)
     
     if attack.endswith('fgsm'):
-        return Multi_I_FGSM_Attack(attack, model, loss_fn, args)
+        #return Multi_I_FGSM_Attack(attack, model, loss_fn, args)
+        return Multi_Attack(attack, model, loss_fn, args)
 
     elif attack == 'ila':
         return ILA_Attack(model_name=args.source_model,

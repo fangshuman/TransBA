@@ -1,19 +1,43 @@
 import os
+import argparse
+import logging
 import ipdb
 
 import torch
 import torch.nn as nn
-import matplotlib.pyplot as plt
 
 import configs
 from models import make_model
 from dataset import make_loader
 
 
-def predict(model, data_loader):
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input-dir", type=str)
+    parser.add_argument('--target-model', nargs="+", default=configs.target_model_names)
+    parser.add_argument("--batch-size", type=int)
+    parser.add_argument("--total-num", type=int, default=1000)
+
+    args = parser.parse_args()
+    return args
+
+
+def valid_model_with_adversarial_example(arch, args):
+    model = make_model(arch=arch)
+    size = model.input_size[1]
+    model = model.cuda()
     model.eval()
-    total_num = 0
+    total = 0
     count = 0
+
+    _, data_loader = make_loader(
+        image_dir=args.input_dir,
+        label_dir="imagenet_class_to_idx.npy",
+        phase="adv",
+        batch_size=configs.target_model_batch_size[arch],
+        total=args.total_num,
+        size=size,
+    )
 
     with torch.no_grad():
         for i, (inputs, labels, indexs) in enumerate(data_loader):
@@ -22,50 +46,46 @@ def predict(model, data_loader):
 
             output = model(inputs)
             _, preds = torch.max(output.data, dim=1)
-            
-            total_num += inputs.size(0)
+
+            total += inputs.size(0)
             count += (preds == labels).sum().item()
-    
-    return count * 100.0 / total_num
 
-
-def eval_all_iters(root_dir, arch):
-    model = make_model(arch=arch)
-    size = model.input_size[1]
-    model = model.cuda()
-
-    iters = []
-    accls = []
-    for i in range(10, 310, 10):
-        print(f'evaluate {i}iter adv images')
-        _, data_loader = make_loader(image_dir=os.path.join(root_dir, str(i) + 'iter'),
-                                     label_dir='imagenet_class_to_idx.npy',
-                                     phase='adv',
-                                     batch_size=configs.val_batch_size[arch],
-                                     total=1000,
-                                     size=size)
-        acc = predict(model, data_loader)
-        print(acc)
-        iters.append(i)
-        accls.append(acc)
-    return iters, accls
-        
+    return count * 100.0 / total
 
 
 def main():
-    root_dir = './output/mifgsm_resnet50'
+    args = get_args()
+    assert set(args.target_model).issubset(set(configs.target_model_names))
 
-    for target_model in configs.target_model_names:
-        print(target_model)
-        iters, accls = eval_all_iters(root_dir, target_model)    
-        plt.plot(iters, accls, ls='-', label=target_model)
-        plt.legend()
-        plt.savefig(f'figs/mifgsm/{target_model}.png')
-        plt.clf()
-        plt.cla()
+    logger_path = os.path.join(
+        "output_log", "valid.log"
+    )
+
+    os.makedirs("output_log", exist_ok=True)
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(
+        format="[%(asctime)s] - %(message)s",
+        datefmt="%Y/%m/%d %H:%M:%S",
+        level=logging.INFO,
+        handlers=[
+            logging.FileHandler(logger_path),
+            logging.StreamHandler(),
+        ],
+    )
+    logger.info(args)
+
+    acc_list = []
+    for target_model_name in args.target_model:
+        logger.info(f"Transfer to {target_model_name}..")
+        acc = valid_model_with_adversarial_example(target_model_name, args)
+        acc_list.append(acc)
+        logger.info(f"acc: {acc:.2f}%")
+        logger.info(f"Transfer done.")
+
+        torch.cuda.empty_cache()
     
+    logger.info("\t".join([str(round(v, 2)) for v in acc_list]))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-    
