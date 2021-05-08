@@ -19,7 +19,6 @@ class ImageNetDataset(torch.utils.data.Dataset):
 
         if phase == "cln":
             self.image_list = [item for item in self.image_list if "png" in item]
-            #self.image_list = [item for item in self.image_list if "JPEG" in item]
             self.transform = transforms.Compose(
                 [
                     transforms.Resize(int(size / 0.875)),

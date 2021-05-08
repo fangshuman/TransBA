@@ -263,15 +263,15 @@ class Multi_Attack(object):
                 # return current_grad
                 grad = current_grad
 
-            # momentum
-            if "mi" in self.attack_method or "ni" in self.attack_method:
-                g = self.decay_factor * g + normalize_by_pnorm(grad, p=1)
-                grad = g
-            
-            # Gaussian kernel
+            # Gaussian kernel: TI-FGSM
             if "ti" in self.attack_method:
                 kernel = self.get_Gaussian_kernel(img_x)
                 grad = F.conv2d(grad, kernel, padding=self.kernlen // 2)
+
+            # momentum: MI-FGSM
+            if "mi" in self.attack_method or "ni" in self.attack_method:
+                g = self.decay_factor * g + normalize_by_pnorm(grad, p=1)
+                grad = g
 
             grad_sign = grad.data.sign()
             delta.data = delta.data + self.eps_iter * grad_sign
