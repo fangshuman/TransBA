@@ -1,9 +1,9 @@
 import os
 import argparse
 import logging
-from datetime import datetime
 import random
-import time
+from datetime import datetime
+from tqdm import tqdm
 
 import numpy as np
 import torch
@@ -96,7 +96,8 @@ def attack_source_model(arch, args):
     model.eval()
     if args.gamma < 1.0:  # use Skip Gradient Method (SGM)
         attack.register_hook()
-    for i, (inputs, labels, indexs) in enumerate(data_loader):
+    # for i, (inputs, labels, indexs) in enumerate(data_loader):
+    for inputs, labels, indexs in tqdm(data_loader):
         inputs = inputs.cuda()
         labels = labels.cuda()
 
@@ -110,8 +111,8 @@ def attack_source_model(arch, args):
             output_dir=args.output_dir,
         )
 
-        if i % args.print_freq == 0:
-            print(f"generating: [{i} / {len(data_loader)}]")
+        # if i % args.print_freq == 0:
+        #     print(f"generating: [{i} / {len(data_loader)}]")
 
 
 def valid_model_with_adversarial_example(arch, args):
