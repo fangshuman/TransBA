@@ -223,6 +223,8 @@ class Multi_Attack(object):
                     loss.backward()
                     grad += delta.grad.data
                     delta.grad.data.zero_()
+                # get average value of gradient
+                grad = grad / self.scale_copies
 
             else:
                 if "di" in self.attack_method:
@@ -271,10 +273,17 @@ class Multi_Attack(object):
                 grad = F.conv2d(grad, kernel, padding=self.kernlen // 2)
 
 
-            # momentum: MI-FGSM
+            # momentum: MI-FGSM / NI-FGSM
             if "mi" in self.attack_method or "ni" in self.attack_method:
                 g = self.decay_factor * g + normalize_by_pnorm(grad, p=1)
                 grad = g
+
+            
+            # Patch-wise attach: PI-FGSM
+            if "pi" in self.attack_method:
+                pass
+
+
 
             grad_sign = grad.data.sign()
             delta.data = delta.data + self.eps_iter * grad_sign

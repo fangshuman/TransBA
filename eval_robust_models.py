@@ -21,7 +21,7 @@ def load_images(input_dir, batch_shape):
     idx = 0
     batch_size = batch_shape[0]
     for filepath in tf.gfile.Glob(os.path.join(input_dir, '*')):
-        with tf.gfile.Open(filepath, 'rb') as f:]
+        with tf.gfile.Open(filepath, 'rb') as f:
             image = tf.image.resize_images(imread(f, mode='RGB'), [299, 299])
             image = image.eval().astype(np.float) / 255.0
 
@@ -53,6 +53,7 @@ def evaluate_with_robust_models(input_dir):
 
     f2l = np.load("imagenet_class_to_idx.npy", allow_pickle=True)[()]
 
+    # batch_shape = [50, 299, 299, 3]
     batch_shape = [100, 299, 299, 3]
     num_classes = 1001
 
