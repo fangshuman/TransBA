@@ -11,6 +11,7 @@ data/
 dataset_cifar/
 dataset_1000/
 dataset_5000/
+checkpoints/
 
 main_.py
 

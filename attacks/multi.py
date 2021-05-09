@@ -239,6 +239,7 @@ class Multi_Attack(object):
                 loss.backward()
                 grad = delta.grad.data
 
+            # variance: VI-FGSM
             if "vi" in self.attack_method:
                 global_grad = torch.zeros_like(img_x)
                 for i in range(self.sample_n):
@@ -263,10 +264,12 @@ class Multi_Attack(object):
                 # return current_grad
                 grad = current_grad
 
+
             # Gaussian kernel: TI-FGSM
             if "ti" in self.attack_method:
                 kernel = self.get_Gaussian_kernel(img_x)
                 grad = F.conv2d(grad, kernel, padding=self.kernlen // 2)
+
 
             # momentum: MI-FGSM
             if "mi" in self.attack_method or "ni" in self.attack_method:

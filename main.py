@@ -14,6 +14,7 @@ from utils import Parameters
 from models import make_model
 from dataset import make_loader, save_image
 from attacks import get_attack
+from eval_robust_models import evaluate_with_robust_models
 
 
 seed = 0
@@ -55,7 +56,6 @@ def get_args():
     parser.add_argument("--ila-layer", type=int, help="for ila")
     parser.add_argument("--step_size_pgd", type=float, help="for ila")
     parser.add_argument("--step_size_ila", type=float, help="for ila")
-    parser.add_argument("--print-freq", type=float, default=10, help="print frequency")
     parser.add_argument(
         "--not-valid", help="validate adversarial example", action="store_true"
     )
@@ -223,6 +223,12 @@ def main():
         acc_list = []
         if not args.not_valid:
             for target_model_name in _args.target_model:
+                if target_model_name == "robust_models":
+                    correct_cnt, model_name = evaluate_with_robust_models(args.output_dir)
+                    for i in range(len(model_name)):
+                        acc = correct_cnt[i] * 100.0 / args.total_num
+                        logger.info(f"{model_name[i]}: {acc:.2f}%")
+
                 logger.info(f"Transfer to {target_model_name}..")
                 acc = valid_model_with_adversarial_example(target_model_name, args)
                 acc_list.append(acc)

@@ -9,6 +9,7 @@ import torch.nn as nn
 import configs
 from models import make_model
 from dataset import make_loader
+from eval_robust_models import evaluate_with_robust_models
 
 
 def get_args():
@@ -76,6 +77,12 @@ def main():
 
     acc_list = []
     for target_model_name in args.target_model:
+        if target_model_name == "robust_models":
+            correct_cnt, model_name = evaluate_with_robust_models(args.input_dir)
+            for i in range(len(model_name)):
+                acc = correct_cnt[i] * 100.0 / args.total_num
+                logger.info(f"{model_name[i]}: {acc:.2f}%")
+
         logger.info(f"Transfer to {target_model_name}..")
         acc = valid_model_with_adversarial_example(target_model_name, args)
         acc_list.append(acc)
