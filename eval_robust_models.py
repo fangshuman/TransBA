@@ -128,12 +128,7 @@ if __name__ == "__main__":
     parser.add_argument("--total-num", type=int, default=1000)
     args = parser.parse_args()
 
-    print(args)
-
     correct_cnt, model_name = evaluate_with_robust_models(args.input_dir)
     for i in range(len(model_name)):
         acc = correct_cnt[i] * 100.0 / args.total_num
         print(f"Transfer to {model_name[i]} accuracy: {acc:.2f}%")
-    
-    print("*" * 50)
-    print()
