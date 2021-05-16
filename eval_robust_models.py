@@ -129,6 +129,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     correct_cnt, model_name = evaluate_with_robust_models(args.input_dir)
+    acc_list = []
     for i in range(len(model_name)):
         acc = correct_cnt[i] * 100.0 / args.total_num
+        acc_list.append(acc)
         print(f"Transfer to {model_name[i]} accuracy: {acc:.2f}%")
+    
+    print("\t".join([str(round(v, 2)) for v in acc_list]))
