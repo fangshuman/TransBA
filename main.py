@@ -76,7 +76,6 @@ def attack_source_model(arch, args):
     model = model.cuda()
 
     # create dataloader
-    #batch_size = int(args.batch_size * args.batch_size_coeff)
     batch_size = args.batch_size
     img_list, data_loader = make_loader(
         image_dir=args.input_dir,
@@ -96,7 +95,6 @@ def attack_source_model(arch, args):
     model.eval()
     if args.gamma < 1.0:  # use Skip Gradient Method (SGM)
         attack.register_hook()
-    # for i, (inputs, labels, indexs) in enumerate(data_loader):
     for inputs, labels, indexs in tqdm(data_loader):
         inputs = inputs.cuda()
         labels = labels.cuda()
@@ -111,8 +109,6 @@ def attack_source_model(arch, args):
             output_dir=args.output_dir,
         )
 
-        # if i % args.print_freq == 0:
-        #     print(f"generating: [{i} / {len(data_loader)}]")
 
 
 def valid_model_with_adversarial_example(arch, args):
@@ -144,6 +140,7 @@ def valid_model_with_adversarial_example(arch, args):
             count += (preds == labels).sum().item()
 
     return count * 100.0 / total
+
 
 
 def main():
@@ -227,13 +224,15 @@ def main():
                     correct_cnt, model_name = evaluate_with_robust_models(args.output_dir)
                     for i in range(len(model_name)):
                         acc = correct_cnt[i] * 100.0 / args.total_num
+                        acc_list.append(acc)
                         logger.info(f"{model_name[i]}: {acc:.2f}%")
 
-                logger.info(f"Transfer to {target_model_name}..")
-                acc = valid_model_with_adversarial_example(target_model_name, args)
-                acc_list.append(acc)
-                logger.info(f"acc: {acc:.2f}%")
-                logger.info(f"Transfer done.")
+                else:
+                    logger.info(f"Transfer to {target_model_name}..")
+                    acc = valid_model_with_adversarial_example(target_model_name, args)
+                    acc_list.append(acc)
+                    logger.info(f"acc: {acc:.2f}%")
+                    logger.info(f"Transfer done.")
 
         torch.cuda.empty_cache()
 

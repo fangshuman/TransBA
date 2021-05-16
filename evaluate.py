@@ -81,13 +81,15 @@ def main():
             correct_cnt, model_name = evaluate_with_robust_models(args.input_dir)
             for i in range(len(model_name)):
                 acc = correct_cnt[i] * 100.0 / args.total_num
+                acc_list.append(acc)
                 logger.info(f"{model_name[i]}: {acc:.2f}%")
-
-        logger.info(f"Transfer to {target_model_name}..")
-        acc = valid_model_with_adversarial_example(target_model_name, args)
-        acc_list.append(acc)
-        logger.info(f"acc: {acc:.2f}%")
-        logger.info(f"Transfer done.")
+        
+        else:
+            logger.info(f"Transfer to {target_model_name}..")
+            acc = valid_model_with_adversarial_example(target_model_name, args)
+            acc_list.append(acc)
+            logger.info(f"acc: {acc:.2f}%")
+            logger.info(f"Transfer done.")
 
         torch.cuda.empty_cache()
     

@@ -3,149 +3,6 @@ from .ni_si_fgsm import *
 from .vi_fgsm import *
 from .utils import normalize_by_pnorm
 
-class Multi_I_FGSM_Attack(I_FGSM_Attack):
-    def __init__(
-        self,
-        attack_method,
-        model,
-        loss_fn,
-        args,
-    ):
-        super().__init__(
-            model,
-            loss_fn,
-            eps=args.eps,
-            nb_iter=args.nb_iter,
-            eps_iter=args.eps_iter,
-            target=args.target,
-        )
-        
-        # get instance
-        self.method_list = {} 
-        for m in attack_method.split("_")[:-1]:
-            # self.method_list.append(get_attack(m))
-            if m == "i":
-                self.method_list["i_fgsm"] = I_FGSM_Attack(
-                    self.model, 
-                    self.loss_fn,
-                    eps=args.eps,
-                    nb_iter=args.nb_iter,
-                    eps_iter=args.eps_iter,
-                    target=args.target
-                    )
-            elif m == "di":
-                self.method_list["di_fgsm"] = DI_FGSM_Attack(
-                    self.model, 
-                    self.loss_fn,
-                    eps=args.eps,
-                    nb_iter=args.nb_iter,
-                    eps_iter=args.eps_iter,
-                    prob=args.prob,
-                    target=args.target
-                    )
-            elif m == "ti":
-                self.method_list["ti_fgsm"] = TI_FGSM_Attack(
-                    self.model, 
-                    self.loss_fn,
-                    eps=args.eps,
-                    nb_iter=args.nb_iter,
-                    eps_iter=args.eps_iter,
-                    kernlen=args.kernlen,
-                    nsig=args.nsig,
-                    target=args.target
-                    )
-            elif m == "mi":
-                self.method_list["mi_fgsm"] = MI_FGSM_Attack(
-                    self.model, 
-                    self.loss_fn,
-                    eps=args.eps,
-                    nb_iter=args.nb_iter,
-                    eps_iter=args.eps_iter,
-                    decay_factor=args.decay_factor,
-                    target=args.target
-                    )
-            elif m == "ni":
-                self.method_list["ni_fgsm"] = NI_FGSM_Attack(
-                    self.model, 
-                    self.loss_fn,
-                    eps=args.eps,
-                    nb_iter=args.nb_iter,
-                    eps_iter=args.eps_iter,
-                    decay_factor=args.decay_factor,
-                    target=args.target
-                    )
-            elif m == "si":
-                self.method_list["si_fgsm"] = SI_FGSM_Attack(
-                    self.model, 
-                    self.loss_fn,
-                    eps=args.eps,
-                    nb_iter=args.nb_iter,
-                    eps_iter=args.eps_iter,
-                    scale_copies=args.scale_copies,
-                    target=args.target
-                    )
-            elif m == "vi":
-                self.method_list["vi_fgsm"] = VI_FGSM_Attack(
-                    self.model, 
-                    self.loss_fn,
-                    eps=args.eps,
-                    nb_iter=args.nb_iter,
-                    eps_iter=args.eps_iter,
-                    sample_n=args.vi_sample_n,
-                    sample_beta=args.vi_sample_beta,
-                    target=args.target
-                    )
-            else:
-                raise NotImplementedError("Current code only supports ti/di/mi/ni/si/vi Please check attack method name.")
-
-
-    def init_extra_var(self, x):
-        for m in self.method_list:
-            self.method_list[m].init_extra_var(x)
-
-    def preprocess(self, x, delta, y):
-        for m in self.method_list:
-            x, delta = self.method_list[m].preprocess(x, delta, y)
-        return x, delta
-
-    def postprocess(self, x, delta, y):
-        for m in self.method_list:
-            self.method_list[m].postprocess(x, delta, y)
-
-    def get_output_x(self, x, delta, y):
-        for m in self.method_list:
-            return self.method_list[m].get_output_x(x, delta, y)
-
-    def grad_preprocess(self, x, delta, y):
-        grad = super().grad_preprocess(x, delta, y)
-        for m in self.method_list:
-            grad = self.method_list[m].grad_preprocess(x, delta, y)
-        return grad
-
-    def grad_processing(self, grad):
-        for m in self.method_list:
-            grad = self.method_list[m].grad_processing(grad)
-        return grad
-
-    def grad_postprocess(self, grad):
-        grad_sign = grad.sign()
-        for m in self.method_list:
-            grad_sign = self.method_list[m].grad_postprocess(grad)
-        return grad_sign
-
-    def perturb_one_iter(self, x, delta, y):
-        for m in self.method_list:
-            delta = self.method_list[m].perturb_one_iter(x, delta, y)
-        return delta
-
-
-
-
-    # def perturb(self, x, y):
-    #     import ipdb; ipdb.set_trace()
-    #     return super().perturb(x, y)
-
-
 class Multi_Attack(object):
     def __init__(
         self,
@@ -172,6 +29,7 @@ class Multi_Attack(object):
             self.scale_copies = args.scale_copies
             self.sample_n = args.vi_sample_n
             self.sample_beta = args.vi_sample_beta
+            self.amplification = args.amplification
 
         except:
             # basic default value
@@ -187,29 +45,35 @@ class Multi_Attack(object):
             self.scale_copies = 5
             self.sample_n = 20
             self.sample_beta = 1.5
-
+            self.amplification = 10
 
 
     def perturb(self, x, y):
+        eps_iter = self.eps_iter
+
         # initialize extra var
         if "mi" in self.attack_method or "ni" in self.attack_method:
             g = torch.zeros_like(x)
         if "vi" in self.attack_method:
             variance = torch.zeros_like(x)
+        if "pi" in self.attack_method:
+            a = torch.zeros_like(x)
+            eps_iter *= self.amplification
+            stack_kern, kern_size = self.project_kern(3)
 
+        extra_item = torch.zeros_like(x)
         delta = torch.zeros_like(x)
         delta.requires_grad_()
 
         for i in range(self.nb_iter):
             if "ni" in self.attack_method: 
-                # img_x = (x + delta) + self.decay_factor * self.eps_iter * g
-                img_x = x + self.decay_factor * self.eps_iter * g 
+                img_x = x + self.decay_factor * eps_iter * g 
             else:
                 img_x = x
             
             # get gradient
-            grad = torch.zeros_like(img_x)
             if "si" in self.attack_method:
+                grad = torch.zeros_like(img_x)
                 for i in range(self.scale_copies):
                     if "di" in self.attack_method:
                         outputs = self.model(self.input_diversity(img_x + delta) * (1./pow(2,i)))
@@ -229,8 +93,6 @@ class Multi_Attack(object):
             else:
                 if "di" in self.attack_method:
                     outputs = self.model(self.input_diversity(img_x + delta))
-                # elif "ni" in self.attack_method:
-                #     outputs = self.model(img_x)
                 else:
                     outputs = self.model(img_x + delta)
                 
@@ -281,21 +143,22 @@ class Multi_Attack(object):
             
             # Patch-wise attach: PI-FGSM
             if "pi" in self.attack_method:
-                pass
-
+                a += eps_iter * grad.data.sign()
+                cut_noise = torch.clamp(abs(a) - self.eps, 0, 1e5) * a.sign()
+                projection = eps_iter * (self.project_noise(cut_noise, stack_kern, kern_size)).sign()
+                a += projection
+                extra_item = projection  # return extra item
 
 
             grad_sign = grad.data.sign()
-            delta.data = delta.data + self.eps_iter * grad_sign
+            delta.data = delta.data + eps_iter * grad_sign + extra_item
             delta.data = torch.clamp(delta.data, -self.eps, self.eps)
             delta.data = torch.clamp(x.data + delta, 0., 1.) - x
 
             delta.grad.data.zero_()
 
-
         x_adv = torch.clamp(x + delta, 0.0, 1.0)
         return x_adv
-
 
 
 
@@ -327,4 +190,19 @@ class Multi_Attack(object):
         kernel = torch.FloatTensor(kernel).expand(x.size(1), x.size(1), self.kernlen, self.kernlen)
         kernel = kernel.to(x.device)
         return kernel
+
+    def project_kern(self, kern_size):
+        kern = np.ones((kern_size, kern_size), dtype=np.float32) / (kern_size ** 2 - 1)
+        kern[kern_size // 2, kern_size // 2] = 0.0
+        kern = kern.astype(np.float32)
+        stack_kern = np.stack([kern, kern, kern])
+        stack_kern = np.expand_dims(stack_kern, 1)
+        stack_kern = torch.tensor(stack_kern).cuda()
+        return stack_kern, kern_size // 2
+
+    def project_noise(self, x, stack_kern, kern_size):
+        x = F.conv2d(x, stack_kern, padding = (kern_size, kern_size), groups=3)
+        return x
+
+
 

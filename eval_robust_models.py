@@ -117,7 +117,8 @@ def evaluate_with_robust_models(input_dir):
                         if l[i] == label:
                             correct_count[i] += 1
 
-            return correct_count, model_name
+        return correct_count, model_name
+
 
 
 if __name__ == "__main__":
