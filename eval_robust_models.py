@@ -1,7 +1,11 @@
 import os
+import argparse
+import logging
+
 import numpy as np
 import tensorflow as tf
 from scipy.misc import imread
+
 from nets import inception_v3, inception_resnet_v2
 
 
@@ -38,7 +42,7 @@ def load_images(input_dir, batch_shape):
         yield filenames, images
 
 
-def evaluate_with_robust_models(input_dir):    
+def evaluate_with_robust_model(input_dir):    
     tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
     slim = tf.contrib.slim
@@ -54,7 +58,7 @@ def evaluate_with_robust_models(input_dir):
     f2l = np.load("imagenet_class_to_idx.npy", allow_pickle=True)[()]
 
     # batch_shape = [50, 299, 299, 3]
-    batch_shape = [100, 299, 299, 3]
+    batch_shape = [200, 299, 299, 3]
     num_classes = 1001
 
     with tf.Graph().as_default():
@@ -93,7 +97,7 @@ def evaluate_with_robust_models(input_dir):
             s7.restore(sess, model_checkpoint_map['ens_adv_inception_resnet_v2'])
 
             model_name = ['ens3_adv_inception_v3', 'ens4_adv_inception_v3',
-                          'ens_adv_inception_resnet_v2', 'adv_inception_v3']
+                        'ens_adv_inception_resnet_v2', 'adv_inception_v3']
             correct_count = np.zeros(len(model_name))
 
             idx = 0
@@ -122,17 +126,31 @@ def evaluate_with_robust_models(input_dir):
 
 
 if __name__ == "__main__":
-    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--input-dir", type=str)
     parser.add_argument("--total-num", type=int, default=1000)
     args = parser.parse_args()
 
-    correct_cnt, model_name = evaluate_with_robust_models(args.input_dir)
+    logger_path = os.path.join("output_log", "robust_valid.log")
+
+    os.makedirs("output_log", exist_ok=True)
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(
+        format="[%(asctime)s] - %(message)s",
+        datefmt="%Y/%m/%d %H:%M:%S",
+        level=logging.INFO,
+        handlers=[
+            logging.FileHandler(logger_path),
+            logging.StreamHandler(),
+        ],
+    )
+    logger.info(args)
+
+    correct_cnt, model_name = evaluate_with_robust_model(args.input_dir)
     acc_list = []
     for i in range(len(model_name)):
         acc = correct_cnt[i] * 100.0 / args.total_num
         acc_list.append(acc)
-        print(f"Transfer to {model_name[i]} accuracy: {acc:.2f}%")
+        logger.info(f"Transfer to {model_name[i]} accuracy: {acc:.2f}%")
     
-    print("\t".join([str(round(v, 2)) for v in acc_list]))
+    logger.info("\t".join([str(round(v, 2)) for v in acc_list]))

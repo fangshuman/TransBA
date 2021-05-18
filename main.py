@@ -1,3 +1,4 @@
+import importlib
 import os
 import argparse
 import logging
@@ -14,7 +15,8 @@ from utils import Parameters
 from models import make_model
 from dataset import make_loader, save_image
 from attacks import get_attack
-from eval_robust_models import evaluate_with_robust_models
+from evaluate import evaluate_with_natural_model
+from eval_robust_models import evaluate_with_robust_model
 
 
 seed = 0
@@ -32,10 +34,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input-dir", type=str, default="dataset_1000")
     parser.add_argument("--output-dir", type=str, default="output")
-    parser.add_argument(
-        "--attack-method", type=str, default="i_fgsm", 
-        # choices=configs.attack_methods
-    )
+    parser.add_argument("--attack-method", type=str, default="i_fgsm")
     parser.add_argument("--source-model", nargs="+", default=configs.source_model_names)
     parser.add_argument('--target-model', nargs="+", default=configs.target_model_names)
     parser.add_argument("--batch-size", type=int)
@@ -88,7 +87,7 @@ def attack_source_model(arch, args):
 
     # create attack
     attack = get_attack(
-        attack=args.attack_method, model=model, loss_fn=F.cross_entropy, args=args
+        attack=args.attack_method, arch=arch, model=model, loss_fn=F.cross_entropy, args=args
     )
 
     # generate adversarial example
@@ -109,37 +108,6 @@ def attack_source_model(arch, args):
             output_dir=args.output_dir,
         )
 
-
-
-def valid_model_with_adversarial_example(arch, args):
-    model = make_model(arch=arch)
-    size = model.input_size[1]
-    model = model.cuda()
-    model.eval()
-    total = 0
-    count = 0
-
-    _, data_loader = make_loader(
-        image_dir=args.output_dir,
-        label_dir="imagenet_class_to_idx.npy",
-        phase="adv",
-        batch_size=configs.target_model_batch_size[arch],
-        total=args.total_num,
-        size=size,
-    )
-
-    with torch.no_grad():
-        for i, (inputs, labels, indexs) in enumerate(data_loader):
-            inputs = inputs.cuda()
-            labels = labels.cuda()
-
-            output = model(inputs)
-            _, preds = torch.max(output.data, dim=1)
-
-            total += inputs.size(0)
-            count += (preds == labels).sum().item()
-
-    return count * 100.0 / total
 
 
 
@@ -198,8 +166,10 @@ def main():
         source_model_config = getattr(configs, source_model_name + "_config")
         if _args.attack_method.endswith("_fgsm"):
             attack_method_config = getattr(configs, "fgsm_base")
+        elif _args.attack_method.startswith("sgm"):
+            attack_method_config = getattr(configs, "sgm_base")
         else:
-            attack_method_config = getattr(configs, _args.attack_method + "_base")
+            raise NotImplementedError(f"No such attack method: {_args.attack_method}")
         args = vars(_args)
         args = {
             **source_model_config,
@@ -221,7 +191,7 @@ def main():
         if not args.not_valid:
             for target_model_name in _args.target_model:
                 if target_model_name == "robust_models":
-                    correct_cnt, model_name = evaluate_with_robust_models(args.output_dir)
+                    correct_cnt, model_name = evaluate_with_robust_model(args.output_dir)
                     for i in range(len(model_name)):
                         acc = correct_cnt[i] * 100.0 / args.total_num
                         acc_list.append(acc)
@@ -229,7 +199,7 @@ def main():
 
                 else:
                     logger.info(f"Transfer to {target_model_name}..")
-                    acc = valid_model_with_adversarial_example(target_model_name, args)
+                    acc = evaluate_with_natural_model(target_model_name, args)
                     acc_list.append(acc)
                     logger.info(f"acc: {acc:.2f}%")
                     logger.info(f"Transfer done.")

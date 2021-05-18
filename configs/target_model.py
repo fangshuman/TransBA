@@ -4,7 +4,7 @@ target_model_names = [
     'resnet50', 'resnet101', 'resnet152',
     'densenet121', 'densenet169', 'densenet201',
     'inceptionv3', 'inceptionv4', 'inceptionresnetv2',
-    'robust_models'
+    #'robust_models',
 ]
 
 

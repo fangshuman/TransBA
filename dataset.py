@@ -29,7 +29,10 @@ class ImageNetDataset(torch.utils.data.Dataset):
         elif phase == "adv":
             self.image_list = [item for item in self.image_list if "png" in item]
             self.transform = transforms.Compose(
-                [transforms.Resize(size), transforms.ToTensor()]
+                [
+                    transforms.Resize(size), 
+                    transforms.ToTensor()
+                ]
             )
         
         # assert len(self.image_list) == total

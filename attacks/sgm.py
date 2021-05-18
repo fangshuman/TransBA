@@ -3,6 +3,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from .utils import normalize_by_pnorm
+
 
 def backward_hook(gamma):
     # implement SGM through grad through ReLU
@@ -18,16 +20,37 @@ def backward_hook_norm(module, grad_in, grad_out):
 
 
 class SGM_Attack(object):
-    def __init__(self, model, loss_fn, eps=0.05, nb_iter=10, eps_iter=0.005, gamma=0.5, target=False):
+    def __init__(self, arch, model, loss_fn, args):
+        self.arch = arch
         self.model = model
         self.loss_fn = loss_fn
-        self.eps = eps
-        self.nb_iter = nb_iter
-        self.eps_iter = eps_iter
-        self.target = target
-        self.gamma = gamma
+        self.attack_method = args.attack_method
+
+        try:
+            # basic
+            self.eps = args.eps
+            self.nb_iter = args.nb_iter
+            self.eps_iter = args.eps_iter
+            self.target = args.target
+            self.gamma = args.gamma
+            # extra
+            self.decay_factor = args.decay_factor
+
+        except:
+            # basic default value
+            self.eps = 0.05
+            self.nb_iter = 10
+            self.eps_iter = 0.005
+            self.target = False
+            self.gamma = 0.5
+            # extra default value
+            self.decay_factor = 1.0
+     
     
     def perturb(self, x, y):
+        if "mi" in self.attack_method:
+            g = torch.zeros_like(x)
+
         delta = torch.zeros_like(x)
         delta.requires_grad_()
     
@@ -38,8 +61,14 @@ class SGM_Attack(object):
                 loss = -loss
         
             loss.backward()
+            grad = delta.grad.data
 
-            grad_sign = delta.grad.data.sign()
+            # momentum: MI-FGSM
+            if "mi" in self.attack_method:
+                g = self.decay_factor * g + normalize_by_pnorm(grad, p=1)
+                grad = g
+
+            grad_sign = grad.data.sign()
             delta.data = delta.data + self.eps_iter * grad_sign
             delta.data = torch.clamp(delta.data, -self.eps, self.eps)
             delta.data = torch.clamp(x.data + delta, 0., 1.) - x
@@ -50,35 +79,27 @@ class SGM_Attack(object):
         return x_adv
 
 
-
-class SGM_Attack_for_ResNet(SGM_Attack):
-    def __init__(self, model, loss_fn, eps=0.05, nb_iter=10, eps_iter=0.005, gamma=0.2, target=False):
-        super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, gamma=gamma, target=target)
-
     def register_hook(self):
-        # only use ResNet-50
-        # There are 2 ReLU in Conv module ResNet-50
-        gamma = np.power(self.gamma, 0.5)
-        backward_hook_sgm = backward_hook(gamma)
+        if self.arch == "resnet50" or self.arch == "resnet152":
+            # There are 2 ReLU in Conv module ResNet-50/101/152
+            gamma = np.power(self.gamma, 0.5)
+            backward_hook_sgm = backward_hook(gamma)
 
-        for name, module in self.model.named_modules():
-            if 'relu' in name and not '0.relu' in name:
-                module.register_backward_hook(backward_hook_sgm)
-            if len(name.split('.')) >= 2 and 'layer' in name.split('.')[-2]:
-                module.register_backward_hook(backward_hook_norm)
+            for name, module in self.model.named_modules():
+                if 'relu' in name and not '0.relu' in name:
+                    module.register_backward_hook(backward_hook_sgm)
+                if len(name.split('.')) >= 2 and 'layer' in name.split('.')[-2]:
+                    module.register_backward_hook(backward_hook_norm)
+
+        elif self.arch == "densenet121" or self.arch == "densenet201":
+            # There are 2 ReLU in Conv module DenseNet-121/169/201
+            gamma = np.power(self.gamma, 0.5)
+            backward_hook_sgm = backward_hook(gamma)
+
+            for name, module in self.model.named_modules():
+                if 'relu' in name and not 'transition' in name:
+                    module.register_backward_hook(backward_hook_sgm)
 
 
 
-class SGM_Attack_for_DenseNet(SGM_Attack):
-    def __init__(self, model, loss_fn, eps=0.05, nb_iter=10, eps_iter=0.005, gamma=0.5, target=False):
-        super().__init__(model, loss_fn, eps=eps, nb_iter=nb_iter, eps_iter=eps_iter, gamma=gamma, target=target)
-
-    def register_hook(self):
-        # There are 2 ReLU in Conv module DenseNet-121
-        gamma = np.power(self.gamma, 0.5)
-        backward_hook_sgm = backward_hook(gamma)
-
-        for name, module in self.model.named_modules():
-            if 'relu' in name and not 'transition' in name:
-                module.register_backward_hook(backward_hook_sgm)
 
