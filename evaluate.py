@@ -16,9 +16,6 @@ def evaluate_with_natural_model(arch, input_dir, total_num):
     model = make_model(arch=arch)
     size = model.input_size[1]
     model = model.cuda()
-    model.eval()
-    total = 0
-    count = 0
 
     _, data_loader = make_loader(
         image_dir=input_dir,
@@ -29,8 +26,11 @@ def evaluate_with_natural_model(arch, input_dir, total_num):
         size=size,
     )
 
+    model.eval()
+    total = 0
+    count = 0
     with torch.no_grad():
-        for i, (inputs, labels, indexs) in enumerate(data_loader):
+        for inputs, labels, indexs in data_loader:
             inputs = inputs.cuda()
             labels = labels.cuda()
 
