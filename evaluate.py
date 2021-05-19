@@ -12,7 +12,7 @@ from dataset import make_loader
 from eval_robust_models import evaluate_with_robust_model
 
 
-def evaluate_with_natural_model(arch, args):
+def evaluate_with_natural_model(arch, input_dir, total_num):
     model = make_model(arch=arch)
     size = model.input_size[1]
     model = model.cuda()
@@ -21,11 +21,11 @@ def evaluate_with_natural_model(arch, args):
     count = 0
 
     _, data_loader = make_loader(
-        image_dir=args.input_dir,
+        image_dir=input_dir,
         label_dir="imagenet_class_to_idx.npy",
         phase="adv",
         batch_size=configs.target_model_batch_size[arch],
-        total=args.total_num,
+        total=total_num,
         size=size,
     )
 
@@ -81,7 +81,7 @@ if __name__ == "__main__":
         
         else:
             logger.info(f"Transfer to {target_model_name}..")
-            acc = evaluate_with_natural_model(target_model_name, args)
+            acc = evaluate_with_natural_model(target_model_name, args.input_dir, args.total_num)
             acc_list.append(acc)
             logger.info(f"acc: {acc:.2f}%")
             logger.info(f"Transfer done.")

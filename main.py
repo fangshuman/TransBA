@@ -199,7 +199,7 @@ def main():
 
                 else:
                     logger.info(f"Transfer to {target_model_name}..")
-                    acc = evaluate_with_natural_model(target_model_name, args)
+                    acc = evaluate_with_natural_model(target_model_name, args.input_dir, args.total_num)
                     acc_list.append(acc)
                     logger.info(f"acc: {acc:.2f}%")
                     logger.info(f"Transfer done.")
