@@ -15,37 +15,63 @@ class Multi_Attack(object):
         self.model = model
         self.loss_fn = loss_fn
 
-        try:
-            # basic
-            self.eps = args.eps
-            self.nb_iter = args.nb_iter
-            self.eps_iter = args.eps_iter
-            self.target = args.target
-            # extra
-            self.prob = args.prob
-            self.kernlen = args.kernlen
-            self.nsig = args.nsig
-            self.decay_factor = args.decay_factor
-            self.scale_copies = args.scale_copies
-            self.sample_n = args.vi_sample_n
-            self.sample_beta = args.vi_sample_beta
-            self.amplification = args.amplification
+        # try:
+        #     # basic
+        #     self.eps = args.eps
+        #     self.nb_iter = args.nb_iter
+        #     self.eps_iter = args.eps_iter
+        #     self.target = args.target
+        #     # extra
+        #     self.prob = args.prob
+        #     self.kernlen = args.kernlen
+        #     self.nsig = args.nsig
+        #     self.decay_factor = args.decay_factor
+        #     self.scale_copies = args.scale_copies
+        #     self.sample_n = args.vi_sample_n
+        #     self.sample_beta = args.vi_sample_beta
+        #     self.amplification = args.amplification
 
-        except:
+        # except:
+        #     # basic default value
+        #     self.eps = 0.05
+        #     self.nb_iter = 10
+        #     self.eps_iter = 0.005
+        #     self.target = False
+        #     # extra default value
+        #     self.prob = 0.5
+        #     self.kernlen = 7
+        #     self.nsig = 3
+        #     self.decay_factor = 1.0
+        #     self.scale_copies = 5
+        #     self.sample_n = 20
+        #     self.sample_beta = 1.5
+        #     self.amplification = 10
+
+        default_value = {
             # basic default value
-            self.eps = 0.05
-            self.nb_iter = 10
-            self.eps_iter = 0.005
-            self.target = False
+            'eps': 0.05,
+            'nb_iter': 10, 
+            'eps_iter': 0.005,
+            'target': False,
             # extra default value
-            self.prob = 0.5
-            self.kernlen = 7
-            self.nsig = 3
-            self.decay_factor = 1.0
-            self.scale_copies = 5
-            self.sample_n = 20
-            self.sample_beta = 1.5
-            self.amplification = 10
+            'prob': 0.5,
+            'kernlen': 7,
+            'nsig': 3,
+            'decay_factor': 1.0,
+            'scale_copies': 5,
+            'sample_n': 20,
+            'sample_beta': 1.5,
+            'amplification': 10,
+        }
+        for k, v in default_value.items():
+            self.load_params(k, v, args)
+
+    def load_params(self, key, value, args):
+        try:
+            self.__dict__[key] = vars(args)[key]
+        except:
+            self.__dict__[key] = value
+
 
 
     def perturb(self, x, y):

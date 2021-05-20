@@ -26,25 +26,44 @@ class SGM_Attack(object):
         self.loss_fn = loss_fn
         self.attack_method = args.attack_method
 
-        try:
-            # basic
-            self.eps = args.eps
-            self.nb_iter = args.nb_iter
-            self.eps_iter = args.eps_iter
-            self.target = args.target
-            self.gamma = args.gamma
-            # extra
-            self.decay_factor = args.decay_factor
+        # try:
+        #     # basic
+        #     self.eps = args.eps
+        #     self.nb_iter = args.nb_iter
+        #     self.eps_iter = args.eps_iter
+        #     self.target = args.target
+        #     self.gamma = args.gamma
+        #     # extra
+        #     self.decay_factor = args.decay_factor
 
-        except:
+        # except:
+        #     # basic default value
+        #     self.eps = 0.05
+        #     self.nb_iter = 10
+        #     self.eps_iter = 0.005
+        #     self.target = False
+        #     self.gamma = 0.5
+        #     # extra default value
+        #     self.decay_factor = 1.0
+
+        default_value = {
             # basic default value
-            self.eps = 0.05
-            self.nb_iter = 10
-            self.eps_iter = 0.005
-            self.target = False
-            self.gamma = 0.5
+            'eps': 0.05,
+            'nb_iter': 10, 
+            'eps_iter': 0.005,
+            'target': False,
+            'gamma': 0.5,
             # extra default value
-            self.decay_factor = 1.0
+            'decay_factor': 1.0
+        }
+        for k, v in default_value.items():
+            self.load_params(k, v, args)
+
+    def load_params(self, key, value, args):
+        try:
+            self.__dict__[key] = vars(args)[key]
+        except:
+            self.__dict__[key] = value
      
     
     def perturb(self, x, y):
