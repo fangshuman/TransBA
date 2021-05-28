@@ -26,26 +26,6 @@ class SGM_Attack(object):
         self.loss_fn = loss_fn
         self.attack_method = args.attack_method
 
-        # try:
-        #     # basic
-        #     self.eps = args.eps
-        #     self.nb_iter = args.nb_iter
-        #     self.eps_iter = args.eps_iter
-        #     self.target = args.target
-        #     self.gamma = args.gamma
-        #     # extra
-        #     self.decay_factor = args.decay_factor
-
-        # except:
-        #     # basic default value
-        #     self.eps = 0.05
-        #     self.nb_iter = 10
-        #     self.eps_iter = 0.005
-        #     self.target = False
-        #     self.gamma = 0.5
-        #     # extra default value
-        #     self.decay_factor = 1.0
-
         default_value = {
             # basic default value
             'eps': 0.05,
@@ -99,9 +79,10 @@ class SGM_Attack(object):
 
 
     def register_hook(self):
-        if self.arch == "resnet50" or self.arch == "resnet152":
-            # There are 2 ReLU in Conv module ResNet-50/101/152
-            gamma = np.power(self.gamma, 0.5)
+        if self.arch in "resnet":
+            if self.arch in ["resnet50", "resnet101", "resnet152"]:
+                # There are 2 ReLU in Conv module ResNet-50/101/152
+                gamma = np.power(self.gamma, 0.5)
             backward_hook_sgm = backward_hook(gamma)
 
             for name, module in self.model.named_modules():
@@ -110,7 +91,7 @@ class SGM_Attack(object):
                 if len(name.split('.')) >= 2 and 'layer' in name.split('.')[-2]:
                     module.register_backward_hook(backward_hook_norm)
 
-        elif self.arch == "densenet121" or self.arch == "densenet201":
+        elif self.arch in "densenet":
             # There are 2 ReLU in Conv module DenseNet-121/169/201
             gamma = np.power(self.gamma, 0.5)
             backward_hook_sgm = backward_hook(gamma)
