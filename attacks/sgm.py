@@ -83,6 +83,8 @@ class SGM_Attack(object):
             if self.arch in ["resnet50", "resnet101", "resnet152"]:
                 # There are 2 ReLU in Conv module ResNet-50/101/152
                 gamma = np.power(self.gamma, 0.5)
+            else:
+                gamma = self.gamma
             backward_hook_sgm = backward_hook(gamma)
 
             for name, module in self.model.named_modules():
