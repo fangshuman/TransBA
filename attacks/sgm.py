@@ -2,6 +2,7 @@ import ipdb
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from .utils import normalize_by_pnorm
 
@@ -34,7 +35,8 @@ class SGM_Attack(object):
             'target': False,
             'gamma': 0.5,
             # extra default value
-            'decay_factor': 1.0
+            'decay_factor': 1.0,
+            'prob': 0.5
         }
         for k, v in default_value.items():
             self.load_params(k, v, args)
@@ -53,8 +55,12 @@ class SGM_Attack(object):
         delta = torch.zeros_like(x)
         delta.requires_grad_()
     
-        for i in range(self.nb_iter):                
-            outputs = self.model(x + delta)
+        for i in range(self.nb_iter):     
+            if "di" in self.attack_method:
+                outputs = self.model(self.input_diversity(x + delta))
+            else:
+                outputs = self.model(x + delta)               
+
             loss = self.loss_fn(outputs, y)
             if self.target:
                 loss = -loss
@@ -103,5 +109,23 @@ class SGM_Attack(object):
                     module.register_backward_hook(backward_hook_sgm)
 
 
+    def input_diversity(self, img):
+        size = img.size(2)
+        resize = int(size / 0.875)
 
+        gg = torch.rand(1).item()
+        if gg >= self.prob:
+            return img
+        else:
+            rnd = torch.randint(size, resize + 1, (1,)).item()
+            rescaled = F.interpolate(img, (rnd, rnd), mode="nearest")
+            h_rem = resize - rnd
+            w_hem = resize - rnd
+            pad_top = torch.randint(0, h_rem + 1, (1,)).item()
+            pad_bottom = h_rem - pad_top
+            pad_left = torch.randint(0, w_hem + 1, (1,)).item()
+            pad_right = w_hem - pad_left
+            padded = F.pad(rescaled, pad=(pad_left, pad_right, pad_top, pad_bottom))
+            padded = F.interpolate(padded, (size, size), mode="nearest")
+            return padded
 
