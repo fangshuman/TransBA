@@ -2,7 +2,9 @@
 source_model_names = [
     'vgg16_bn',
     'resnet50',
+    'resnet152',
     'densenet121',
+    'densenet201',
     'inceptionv3',
     'inceptionv4',
     'inceptionresnetv2',
@@ -20,8 +22,18 @@ resnet50_config = {
     'batch_size': 80,
 }
 
+resnet152_config = {
+    'source_model': 'resnet152',
+    'batch_size': 50,
+}
+
 densenet121_config = {
     'source_model': 'densenet121',
+    'batch_size': 32,
+}
+
+densenet201_config = {
+    'source_model': 'densenet201',
     'batch_size': 32,
 }
 

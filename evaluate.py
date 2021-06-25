@@ -89,3 +89,4 @@ if __name__ == "__main__":
         torch.cuda.empty_cache()
     
     logger.info("\t".join([str(round(v, 2)) for v in acc_list]))
+
