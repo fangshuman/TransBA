@@ -1,9 +1,10 @@
-from .basic import *
-from .ni_si_fgsm import *
-from .vi_fgsm import *
+import numpy as np
+import scipy.stats as st
+import torch
+import torch.nn.functional as F
 from .utils import normalize_by_pnorm
 
-class Multi_Attack(object):
+class IFGSM_Based_Attacker(object):
     def __init__(
         self,
         attack_method,
@@ -14,38 +15,6 @@ class Multi_Attack(object):
         self.attack_method = attack_method
         self.model = model
         self.loss_fn = loss_fn
-
-        # try:
-        #     # basic
-        #     self.eps = args.eps
-        #     self.nb_iter = args.nb_iter
-        #     self.eps_iter = args.eps_iter
-        #     self.target = args.target
-        #     # extra
-        #     self.prob = args.prob
-        #     self.kernlen = args.kernlen
-        #     self.nsig = args.nsig
-        #     self.decay_factor = args.decay_factor
-        #     self.scale_copies = args.scale_copies
-        #     self.sample_n = args.vi_sample_n
-        #     self.sample_beta = args.vi_sample_beta
-        #     self.amplification = args.amplification
-
-        # except:
-        #     # basic default value
-        #     self.eps = 0.05
-        #     self.nb_iter = 10
-        #     self.eps_iter = 0.005
-        #     self.target = False
-        #     # extra default value
-        #     self.prob = 0.5
-        #     self.kernlen = 7
-        #     self.nsig = 3
-        #     self.decay_factor = 1.0
-        #     self.scale_copies = 5
-        #     self.sample_n = 20
-        #     self.sample_beta = 1.5
-        #     self.amplification = 10
 
         default_value = {
             # basic default value

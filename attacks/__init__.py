@@ -1,14 +1,12 @@
-from .basic import *
+from .attacker import *
 from .sgm import *
 from .ila import *
-from .ni_si_fgsm import *
-from .vi_fgsm import *
-from .multi import *
+
 
 
 def get_attack(attack, arch, model, loss_fn, args):
     if attack.endswith('fgsm'):
-        return Multi_Attack(attack, model, loss_fn, args)
+        return IFGSM_Based_Attacker(attack, model, loss_fn, args)
 
     elif 'sgm' in attack:
         return SGM_Attack(
