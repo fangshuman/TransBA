@@ -16,9 +16,6 @@ fgsm_base = {
     'vi_sample_n': 20,      # for vi
     'vi_sample_beta': 1.5,  # for vi
 
-    # 'emi_sample_n': 11,     # for emi
-    # 'emi_sample_eta': 7.,   # for emi
-
     'amplification': 10,    # for pi (patch-wise)
 
 }

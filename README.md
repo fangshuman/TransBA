@@ -17,14 +17,15 @@ This repository contains code to reproduce results from some basic transfer atta
 ## Supported Methods
 
 + I-FGSM 
-+ PGD
 + [TIM](https://arxiv.org/pdf/1904.02884)
 + [DIM](https://arxiv.org/pdf/1803.06978)
 + [MI-FGSM](https://arxiv.org/pdf/1710.06081)
-+ [NI-SI-FGSM](https://arxiv.org/pdf/1908.06281)  (not yet)
++ [NI-SI-FGSM](https://arxiv.org/pdf/1908.06281) 
++ [VMI-FGSM](https://arxiv.org/pdf/2103.15571) 
++ [Patch-wise](https://arxiv.org/pdf/2007.06765)
 + [ILA](https://arxiv.org/pdf/1907.10823)
 + [SGM](https://arxiv.org/pdf/2002.05990)
-+ [VI](https://arxiv.org/pdf/2103.15571)  (not yet)
+
 
 
 
@@ -52,6 +53,11 @@ python main.py --attack-method i_fgsm
 To choose some of source models or some of target models, 
 ```
 python main.py --attack-method i_fgsm --source-model resnet50 --target-model inceptionv3
+```
+
+To attack by combination of exsisting works, 
+```
+python main.py --attack-method mi_di_fgsm
 ```
 
 
