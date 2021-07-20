@@ -151,6 +151,14 @@ def main():
     )
 
 
+    _args.eps /= 255.0
+    _args.eps_iter /= 255.0
+    if "ila" in _args.attack_method:
+        _args.step_size_pgd /= 255.0
+        _args.step_size_ila /= 255.0
+
+
+
     # generate adversarial examples
     logger.info(f"Generate adversarial examples with {_args.attack_method}")
     for i, source_model_name in enumerate(_args.source_model):
@@ -206,7 +214,6 @@ def main():
 
         torch.cuda.empty_cache()
 
-        # import ipdb; ipdb.set_trace()
         logger.info("\t".join([str(round(v, 2)) for v in acc_list]))
         logger.info(round(
             (sum(acc_list) - acc_list[configs.target_model_names.index(source_model_name)]) / (len(configs.target_model_names) - 1), 2)

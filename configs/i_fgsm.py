@@ -1,7 +1,7 @@
 fgsm_base = {
-    'eps': 16 / 255,
+    'eps': 16,
     'nb_iter': 10,
-    'eps_iter': 1.6 / 255,
+    'eps_iter': 1.6,
     'gamma': 1.,  # using sgm when gamma < 1.0
 
     'prob': 0.5,            # for di

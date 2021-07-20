@@ -1,6 +1,6 @@
 sgm_base = {
-    'eps': 16 / 255,
+    'eps': 16,
     'nb_iter': 10,
-    'eps_iter': 1.6 / 255,
+    'eps_iter': 1.6,
     
 }
