@@ -31,11 +31,11 @@ This repository contains code to reproduce results from some basic transfer atta
 
 ## Quick Start
 
-### Prepare the Data and Models
+### Prepare the Dataset and Models
 
 #### Data
 
-To run code with 1k images from ImageNet you should download [1K Images](https://drive.google.com/drive/folders/1CfobY6i8BfqfWPHL31FKFDipNjqWwAhS) and extrace images to the path `dataset_1000/` and with 5k images should download [5K Images](https://drive.google.com/file/d/1RqDUGs7olVGYqSV_sIlqZRRhB9Mw48vM/view?usp=sharing) and place images to `dataset_5000/` respectively. Make sure the file name format of image is like n01440764_ILSVRC2012_val_00007197.png
+To run code with 1k images from ImageNet you should download [1K Images](https://drive.google.com/drive/folders/1CfobY6i8BfqfWPHL31FKFDipNjqWwAhS) and extrace images to the path `dataset_1000/` while with 5k images, download [5K Images](https://drive.google.com/file/d/1RqDUGs7olVGYqSV_sIlqZRRhB9Mw48vM/view?usp=sharing) and place images into `dataset_5000/` respectively. Make sure the file name format of image is like n01440764_ILSVRC2012_val_00007197.png
 
 #### Pretrainedmodels
 
