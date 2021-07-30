@@ -176,10 +176,9 @@ def main():
             **{k: args[k] for k in args if (args[k] is not None and '_model' not in k)}
         } 
 
+        args = Parameters(args)
         args.eps /= 255.0
         args.eps_iter /= 255.0
-
-        args = Parameters(args)
         logger.info(args)
 
         # begin attack
