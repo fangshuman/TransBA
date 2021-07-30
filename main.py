@@ -150,15 +150,6 @@ def main():
         ],
     )
 
-
-    _args.eps /= 255.0
-    _args.eps_iter /= 255.0
-    if "ila" in _args.attack_method:
-        _args.step_size_pgd /= 255.0
-        _args.step_size_ila /= 255.0
-
-
-
     # generate adversarial examples
     logger.info(f"Generate adversarial examples with {_args.attack_method}")
     for i, source_model_name in enumerate(_args.source_model):
@@ -183,7 +174,11 @@ def main():
             **source_model_config,
             **attack_method_config, 
             **{k: args[k] for k in args if (args[k] is not None and '_model' not in k)}
-        }
+        } 
+
+        args.eps /= 255.0
+        args.eps_iter /= 255.0
+
         args = Parameters(args)
         logger.info(args)
 
