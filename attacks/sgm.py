@@ -32,11 +32,13 @@ class SGM_Attack(object):
             'eps': 0.05,
             'nb_iter': 10, 
             'eps_iter': 0.005,
-            'target': False,
+            'target': "none",
             'gamma': 0.5,
             # extra default value
             'decay_factor': 1.0,
-            'prob': 0.5
+            'prob': 0.5,
+            'kernlen': 7,
+            'nsig': 3,
         }
         for k, v in default_value.items():
             self.load_params(k, v, args)
@@ -62,11 +64,16 @@ class SGM_Attack(object):
                 outputs = self.model(x + delta)               
 
             loss = self.loss_fn(outputs, y)
-            if self.target:
+            if self.target != "none":
                 loss = -loss
         
             loss.backward()
             grad = delta.grad.data
+
+            # Gaussian kernel: TI-FGSM
+            if "ti" in self.attack_method:
+                kernel = self.get_Gaussian_kernel(x)
+                grad = F.conv2d(grad, kernel, padding=self.kernlen // 2)
 
             # momentum: MI-FGSM
             if "mi" in self.attack_method:
@@ -128,4 +135,13 @@ class SGM_Attack(object):
             padded = F.pad(rescaled, pad=(pad_left, pad_right, pad_top, pad_bottom))
             padded = F.interpolate(padded, (size, size), mode="nearest")
             return padded
+
+    def get_Gaussian_kernel(self, x):
+        # define Gaussian kernel
+        kern1d = st.norm.pdf(np.linspace(-self.nsig, self.nsig, self.kernlen))
+        kernel = np.outer(kern1d, kern1d)
+        kernel = kernel / kernel.sum()
+        kernel = torch.FloatTensor(kernel).expand(x.size(1), x.size(1), self.kernlen, self.kernlen)
+        kernel = kernel.to(x.device)
+        return kernel
 

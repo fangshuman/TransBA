@@ -40,8 +40,8 @@ def get_args():
     parser.add_argument("--batch-size", type=int)
     parser.add_argument("--total-num", type=int, default=1000)
     parser.add_argument(
-        "--target",
-        action="store_true",
+        "--target", type=str,
+        choices=["random", "next", "minprob", "none"], default="none",
         help="targeted attack",
     )
     parser.add_argument("--eps", type=float)
@@ -91,10 +91,26 @@ def attack_source_model(arch, args):
     )
 
     # generate adversarial example
+    target_label = []
     model.eval()
     if args.gamma < 1.0:  # use Skip Gradient Method (SGM)
         attack.register_hook()
     for inputs, labels, indexs in tqdm(data_loader):
+        # get target label
+        if args.target == "random":
+            tar_labels = torch.randint(0, 1000, (labels.shape))
+            while (tar_labels==labels).sum():
+                tar_labels = torch.randint(0, 1000, (labels.shape))
+        elif args.target == "next":
+            tar_labels = (labels + 1) % 1000
+        elif args.target == "minprob":
+            with torch.no_grad():
+                tar_labels = model(inputs.cuda()).argmin(1).detach().cpu()
+        else:
+            tar_labels = labels
+        target_label.append(tar_labels)
+
+
         inputs = inputs.cuda()
         labels = labels.cuda()
 
@@ -107,6 +123,7 @@ def attack_source_model(arch, args):
             img_list=img_list,
             output_dir=args.output_dir,
         )
+    return torch.cat(target_label)
 
 
 
@@ -185,7 +202,8 @@ def main():
         logger.info(
             f"[{i+1} / {len(_args.source_model)}] source model: {source_model_name}"
         )
-        attack_source_model(source_model_name, args)
+        target_label = attack_source_model(source_model_name, args)
+        torch.save(target_label, os.path.join(args.output_dir, "target_label.pth"))
         logger.info(f"Attack finished.")
 
         # validate

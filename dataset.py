@@ -12,7 +12,7 @@ class ImageNetDataset(torch.utils.data.Dataset):
     def __init__(self, image_dir, label_dir, phase, total=None, size=224):
         assert phase in ["cln", "adv"]
         self.image_dir = image_dir
-        self.class_to_idx = np.load(label_dir, allow_pickle=True)[()]
+        # self.class_to_idx = np.load(label_dir, allow_pickle=True)[()]
         self.image_list = os.listdir(image_dir)
         self.image_list.sort()
         self.phase = phase
@@ -26,6 +26,8 @@ class ImageNetDataset(torch.utils.data.Dataset):
                     transforms.ToTensor(),
                 ]
             )
+            self.class_to_idx = np.load(label_dir, allow_pickle=True)[()]
+
         elif phase == "adv":
             self.image_list = [item for item in self.image_list if "png" in item]
             self.transform = transforms.Compose(
@@ -34,6 +36,7 @@ class ImageNetDataset(torch.utils.data.Dataset):
                     transforms.ToTensor()
                 ]
             )
+            self.label_list = torch.load(label_dir)
         
         # assert len(self.image_list) == total
         if total is None:
@@ -49,7 +52,11 @@ class ImageNetDataset(torch.utils.data.Dataset):
             with Image.open(f) as image:
                 image = image.convert("RGB")
         image = self.transform(image)
-        label = self.class_to_idx[self.image_list[index].split("_")[0]]
+
+        if self.phase == "cln":
+            label = self.class_to_idx[self.image_list[index].split("_")[0]]
+        else:
+            label = self.label_list[index]
 
         return image, label, index
 

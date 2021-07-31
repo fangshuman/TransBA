@@ -19,7 +19,8 @@ def evaluate_with_natural_model(arch, input_dir, total_num):
 
     _, data_loader = make_loader(
         image_dir=input_dir,
-        label_dir="imagenet_class_to_idx.npy",
+        # label_dir="imagenet_class_to_idx.npy",
+        label_dir=os.path.join(input_dir, "target_label.pth"),
         phase="adv",
         batch_size=configs.target_model_batch_size[arch],
         total=total_num,
