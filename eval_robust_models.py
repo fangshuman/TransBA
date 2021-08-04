@@ -55,7 +55,8 @@ def evaluate_with_robust_model(input_dir):
         'ens_adv_inception_resnet_v2': os.path.join(checkpoint_path, 'ens_adv_inception_resnet_v2_rename.ckpt'),
     }
 
-    f2l = np.load("imagenet_class_to_idx.npy", allow_pickle=True)[()]
+    # f2l = np.load("imagenet_class_to_idx.npy", allow_pickle=True)[()]
+    f2l = np.load("TrueLabel.npy", allow_pickle=True)[()]
 
     # batch_shape = [50, 299, 299, 3]
     batch_shape = [200, 299, 299, 3]
@@ -114,7 +115,7 @@ def evaluate_with_robust_model(input_dir):
                     ), feed_dict={x_input: images})
 
                 for filename, l1, l2, l3, l4 in zip(filenames, adv_v3, ens3_adv_v3, ens4_adv_v3, ens_adv_res_v2):
-                    label = int(f2l[filename.split("_")[0]]) + 1
+                    label = int(f2l[filename.split(".")[0]]) + 1
                     
                     l = [l2, l3, l4, l1]
                     for i in range(len(model_name)):

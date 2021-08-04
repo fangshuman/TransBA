@@ -21,7 +21,7 @@ class IFGSM_Based_Attacker(object):
             'eps': 0.05,
             'nb_iter': 10, 
             'eps_iter': 0.005,
-            'target': "none",
+            'target': False,
             # extra default value
             'prob': 0.5,
             'kernlen': 7,
@@ -76,7 +76,7 @@ class IFGSM_Based_Attacker(object):
                         outputs = self.model((img_x + delta) * (1./pow(2,i)))
                     
                     loss = self.loss_fn(outputs, y)
-                    if self.target != "none":
+                    if self.target:
                         loss = -loss
 
                     loss.backward()
@@ -92,7 +92,7 @@ class IFGSM_Based_Attacker(object):
                     outputs = self.model(img_x + delta)
                 
                 loss = self.loss_fn(outputs, y)
-                if self.target != "none":
+                if self.target:
                     loss = -loss
             
                 loss.backward()
@@ -108,7 +108,7 @@ class IFGSM_Based_Attacker(object):
                     outputs = self.model(img_x + delta + r)
                     
                     loss = self.loss_fn(outputs, y)
-                    if self.target != "none": 
+                    if self.target: 
                         loss = -loss
                     
                     loss.backward()

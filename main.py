@@ -40,8 +40,8 @@ def get_args():
     parser.add_argument("--batch-size", type=int)
     parser.add_argument("--total-num", type=int, default=1000)
     parser.add_argument(
-        "--target", type=str,
-        choices=["random", "next", "minprob", "none"], default="none",
+        "--target", 
+        action="store_true",
         help="targeted attack",
     )
     parser.add_argument("--eps", type=float)
@@ -78,7 +78,7 @@ def attack_source_model(arch, args):
     batch_size = args.batch_size
     img_list, data_loader = make_loader(
         image_dir=args.input_dir,
-        label_dir=None if args.inputfolder else "imagenet_class_to_idx.npy",
+        label_dir=None if args.inputfolder else "TrueLabel.npy",
         phase="cln",
         batch_size=batch_size,
         total=args.total_num,
@@ -91,29 +91,13 @@ def attack_source_model(arch, args):
     )
 
     # generate adversarial example
-    target_label = []
     model.eval()
     if args.gamma < 1.0:  # use Skip Gradient Method (SGM)
         attack.register_hook()
     for inputs, labels, indexs in tqdm(data_loader):
-        # get target label
-        if args.target == "random":
-            tar_labels = torch.randint(0, 1000, (labels.shape))
-            while (tar_labels==labels).sum():
-                tar_labels = torch.randint(0, 1000, (labels.shape))
-        elif args.target == "next":
-            tar_labels = (labels + 1) % 1000
-        elif args.target == "minprob":
-            with torch.no_grad():
-                tar_labels = model(inputs.cuda()).argmin(1).detach().cpu()
-        else:
-            tar_labels = labels
-        target_label.append(tar_labels)
-
-
         inputs = inputs.cuda()
         labels = labels.cuda()
-
+        
         inputs_adv = attack.perturb(inputs, labels)
     
         # save adversarial example
@@ -123,7 +107,6 @@ def attack_source_model(arch, args):
             img_list=img_list,
             output_dir=args.output_dir,
         )
-    return torch.cat(target_label)
 
 
 
@@ -202,8 +185,7 @@ def main():
         logger.info(
             f"[{i+1} / {len(_args.source_model)}] source model: {source_model_name}"
         )
-        target_label = attack_source_model(source_model_name, args)
-        torch.save(target_label, os.path.join(args.output_dir, "target_label.pth"))
+        attack_source_model(source_model_name, args)
         logger.info(f"Attack finished.")
 
         # validate

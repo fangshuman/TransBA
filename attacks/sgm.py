@@ -32,7 +32,7 @@ class SGM_Attack(object):
             'eps': 0.05,
             'nb_iter': 10, 
             'eps_iter': 0.005,
-            'target': "none",
+            'target': False,
             'gamma': 0.5,
             # extra default value
             'decay_factor': 1.0,
@@ -64,7 +64,7 @@ class SGM_Attack(object):
                 outputs = self.model(x + delta)               
 
             loss = self.loss_fn(outputs, y)
-            if self.target != "none":
+            if self.target:
                 loss = -loss
         
             loss.backward()

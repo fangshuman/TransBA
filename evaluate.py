@@ -19,8 +19,7 @@ def evaluate_with_natural_model(arch, input_dir, total_num):
 
     _, data_loader = make_loader(
         image_dir=input_dir,
-        # label_dir="imagenet_class_to_idx.npy",
-        label_dir=os.path.join(input_dir, "target_label.pth"),
+        label_dir="TrueLabel.npy",
         phase="adv",
         batch_size=configs.target_model_batch_size[arch],
         total=total_num,
@@ -49,6 +48,7 @@ def evaluate_with_natural_model(arch, input_dir, total_num):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--input-dir", type=str)
+    parser.add_argument("--clean-dir", type=str, default="../dataset/NIPS_dataset")
     parser.add_argument('--target-model', nargs="+", default=configs.target_model_names)
     parser.add_argument("--batch-size", type=int)
     parser.add_argument("--total-num", type=int, default=1000)
