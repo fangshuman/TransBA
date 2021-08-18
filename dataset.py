@@ -20,8 +20,9 @@ class ImageNetDataset(torch.utils.data.Dataset):
             self.image_list = [item for item in self.image_list if "png" in item]
             self.transform = transforms.Compose(
                 [
-                    transforms.Resize(int(size / 0.875)),
-                    transforms.CenterCrop(size),
+                    # transforms.Resize(int(size / 0.875)),
+                    # transforms.CenterCrop(size),
+                    transforms.Resize(size), 
                     transforms.ToTensor(),
                 ]
             )

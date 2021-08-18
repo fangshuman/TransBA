@@ -13,3 +13,5 @@ checkpoints/
 
 *.pth
 
+read_log.py
+eps.py

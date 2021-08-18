@@ -98,14 +98,19 @@ def attack_source_model(arch, args):
         inputs = inputs.cuda()
         labels = labels.cuda()
         
-        inputs_adv = attack.perturb(inputs, labels)
+        with torch.no_grad():
+            _, preds = torch.max(model(inputs), dim=1)
+
+        # inputs_adv = attack.perturb(inputs, preds)
+        inputs_adv = inputs.clone()
     
         # save adversarial example
         save_image(
             images=inputs_adv.detach().cpu().numpy(),
             indexs=indexs,
             img_list=img_list,
-            output_dir=args.output_dir,
+            # output_dir=args.output_dir,
+            output_dir='../dataset/NIPS_dataset_resize'
         )
 
 
@@ -195,15 +200,17 @@ def main():
                 if target_model_name == "robust_models":
                     correct_cnt, model_name = evaluate_with_robust_model(args.output_dir)
                     for i in range(len(model_name)):
-                        acc = correct_cnt[i] * 100.0 / args.total_num
-                        acc_list.append(acc)
-                        logger.info(f"{model_name[i]}: {acc:.2f}%")
+                        suc_rate = correct_cnt[i] * 100.0 / args.total_num
+                        acc_list.append(suc_rate)
+                        logger.info(f"{model_name[i]}: {suc_rate:.2f}%")
 
                 else:
                     logger.info(f"Transfer to {target_model_name}..")
-                    acc = evaluate_with_natural_model(target_model_name, args.output_dir, args.total_num)
-                    acc_list.append(acc)
-                    logger.info(f"acc: {acc:.2f}%")
+                    cln_acc, adv_acc, suc_rate = evaluate_with_natural_model(target_model_name, args.input_dir, args.output_dir, args.total_num)
+                    acc_list.append(suc_rate)
+                    logger.info(f"clean acc: {cln_acc:.2f}%")
+                    logger.info(f"adver acc: {adv_acc:.2f}%")
+                    logger.info(f"success rate: {suc_rate:.2f}%")
                     logger.info(f"Transfer done.")
 
         torch.cuda.empty_cache()

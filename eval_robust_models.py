@@ -29,11 +29,17 @@ def load_images(input_dir, batch_shape):
             image = tf.image.resize_images(imread(f, mode='RGB'), [299, 299])
             image = image.eval().astype(np.float) / 255.0
 
+        with tf.gfile.Open(os.path.join('../dataset/NIPS_dataset', filepath.split('/')[-1]), 'rb') as f:
+            cln_image = tf.image.resize_images(imread(f, mode='RGB'), [299, 299])
+            cln_image = cln_image.eval().astype(np.float) / 255.0
+
         # Images for inception classifier are normalized to be in [-1, 1] interval.
         images[idx, :, :, :] = image * 2.0 - 1.0
+        images[idx+1, :, :, :] = cln_image * 2.0 - 1.0
+        
         filenames.append(os.path.basename(filepath))
-        idx += 1
-        if idx == batch_size:
+        idx += 2
+        if idx >= batch_size:
             yield filenames, images
             filenames = []
             images = np.zeros(batch_shape)
@@ -114,13 +120,21 @@ def evaluate_with_robust_model(input_dir):
                         pred_ens_adv_res_v2
                     ), feed_dict={x_input: images})
 
-                for filename, l1, l2, l3, l4 in zip(filenames, adv_v3, ens3_adv_v3, ens4_adv_v3, ens_adv_res_v2):
-                    label = int(f2l[filename.split(".")[0]]) + 1
+                # for filename, l1, l2, l3, l4 in zip(filenames, adv_v3, ens3_adv_v3, ens4_adv_v3, ens_adv_res_v2):
+                #     label = int(f2l[filename.split(".")[0]]) + 1
                     
-                    l = [l2, l3, l4, l1]
-                    for i in range(len(model_name)):
-                        if l[i] == label:
-                            correct_count[i] += 1
+                #     l = [l2, l3, l4, l1]
+                #     for i in range(len(model_name)):
+                #         if l[i] == label:
+                #             correct_count[i] += 1
+                for ith, (l1, l2, l3, l4) in enumerate(zip(adv_v3, ens3_adv_v3, ens4_adv_v3, ens_adv_res_v2)):
+                    if ith % 2 == 0:
+                        last_pred = [l2, l3, l4, l1]
+                    else:
+                        now_pred = [l2, l3, l4, l1]
+                        for i_model in range(len(model_name)):
+                            if last_pred[i_model] != now_pred[i_model]:
+                                correct_count[i_model] += 1
 
         return correct_count, model_name
 
@@ -150,8 +164,8 @@ if __name__ == "__main__":
     correct_cnt, model_name = evaluate_with_robust_model(args.input_dir)
     acc_list = []
     for i in range(len(model_name)):
-        acc = correct_cnt[i] * 100.0 / args.total_num
-        acc_list.append(acc)
-        logger.info(f"Transfer to {model_name[i]} accuracy: {acc:.2f}%")
+        suc_rate = correct_cnt[i] * 100.0 / args.total_num
+        acc_list.append(suc_rate)
+        logger.info(f"Transfer to {model_name[i]} accuracy: {suc_rate:.2f}%")
     
     logger.info("\t".join([str(round(v, 2)) for v in acc_list]))
