@@ -32,11 +32,12 @@ torch.backends.cudnn.deterministic = True  # as reproducibility docs
 
 def get_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset", type=str, default="ImageNet", choices=["ImageNet", "CIFAR10"])
     parser.add_argument("--input-dir", type=str, default="dataset_1000")
     parser.add_argument("--output-dir", type=str, default="output")
     parser.add_argument("--attack-method", type=str, default="i_fgsm")
-    parser.add_argument("--source-model", nargs="+", default=configs.source_model_names)
-    parser.add_argument('--target-model', nargs="+", default=configs.target_model_names)
+    parser.add_argument("--source-model", nargs="+", default="")
+    parser.add_argument('--target-model', nargs="+", default="")
     parser.add_argument("--batch-size", type=int)
     parser.add_argument("--total-num", type=int, default=1000)
     parser.add_argument(
@@ -70,15 +71,20 @@ def get_args():
 
 def attack_source_model(arch, args):
     # create model
-    model = make_model(arch=arch)
+    model = make_model(arch=arch, dataset=args.dataset)
     size = model.input_size[1]
     model = model.cuda()
+
+    if args.inputfolder:
+        label_dir = None
+    else:
+        label_dir = "TrueLabel.npy" if args.dataset == "ImageNet" else "cifar10_class_to_idx.npy"
 
     # create dataloader
     batch_size = args.batch_size
     img_list, data_loader = make_loader(
         image_dir=args.input_dir,
-        label_dir=None if args.inputfolder else "TrueLabel.npy",
+        label_dir=label_dir,
         phase="cln",
         batch_size=batch_size,
         total=args.total_num,
@@ -101,16 +107,14 @@ def attack_source_model(arch, args):
         with torch.no_grad():
             _, preds = torch.max(model(inputs), dim=1)
 
-        # inputs_adv = attack.perturb(inputs, preds)
-        inputs_adv = inputs.clone()
+        inputs_adv = attack.perturb(inputs, preds)
     
         # save adversarial example
         save_image(
             images=inputs_adv.detach().cpu().numpy(),
             indexs=indexs,
             img_list=img_list,
-            # output_dir=args.output_dir,
-            output_dir='../dataset/NIPS_dataset_resize'
+            output_dir=args.output_dir,
         )
 
 
@@ -118,12 +122,19 @@ def attack_source_model(arch, args):
 
 def main():
     _args = get_args()
-    assert set(_args.source_model).issubset(set(configs.source_model_names))
-    assert set(_args.target_model).issubset(set(configs.target_model_names))
+
+    source_model_config = configs.get_source_model_config(_args.dataset)
+    target_model_config = configs.get_target_model_config(_args.dataset)
+    if _args.source_model == "":
+        _args.source_model = source_model_config.keys()
+    if _args.target_model == "":
+        _args.target_model = target_model_config.keys()
+    assert set(_args.source_model).issubset(set(source_model_config.keys()))
+    assert set(_args.target_model).issubset(set(target_model_config.keys()))
 
     white_arguments = ['attack_method', 'total_num', 'target', 'eps', 'nb_iter', 'eps_iter']
-    black_arguments = ['input_dir', 'output_dir', 'source_model', 'target_model', 'print_freq', 'not_valid', 'inputfolder']
-    log_name = []
+    black_arguments = ['input_dir', 'output_dir', 'source_model', 'target_model', 'print_freq', 'not_valid', 'inputfolder', 'dataset']
+    log_name = [_args.dataset]
     for a in white_arguments:
         v = getattr(_args, a)
         if v is not None:
@@ -167,7 +178,7 @@ def main():
         _args.output_dir = output_dir
 
         # load config
-        source_model_config = getattr(configs, source_model_name + "_config")
+        model_config = source_model_config[source_model_name]
         if _args.attack_method.endswith("_fgsm"):
             attack_method_config = getattr(configs, "fgsm_base")
         elif _args.attack_method.startswith("sgm"):
@@ -176,7 +187,7 @@ def main():
             raise NotImplementedError(f"No such attack method: {_args.attack_method}")
         args = vars(_args)
         args = {
-            **source_model_config,
+            **model_config,
             **attack_method_config, 
             **{k: args[k] for k in args if (args[k] is not None and '_model' not in k)}
         } 
@@ -206,10 +217,9 @@ def main():
 
                 else:
                     logger.info(f"Transfer to {target_model_name}..")
-                    cln_acc, adv_acc, suc_rate = evaluate_with_natural_model(target_model_name, args.input_dir, args.output_dir, args.total_num)
+                    cln_acc, adv_acc, suc_rate = evaluate_with_natural_model(target_model_name, args.dataset, args.input_dir, args.output_dir, args.total_num)
                     acc_list.append(suc_rate)
-                    logger.info(f"clean acc: {cln_acc:.2f}%")
-                    logger.info(f"adver acc: {adv_acc:.2f}%")
+                    # logger.info(f"clean acc:    {cln_acc:.2f}%")
                     logger.info(f"success rate: {suc_rate:.2f}%")
                     logger.info(f"Transfer done.")
 

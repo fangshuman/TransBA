@@ -12,25 +12,29 @@ from dataset import make_loader
 from eval_robust_models import evaluate_with_robust_model
 
 
-def evaluate_with_natural_model(arch, cln_dir, adv_dir, total_num):
-    model = make_model(arch=arch)
+def evaluate_with_natural_model(arch, dataset, cln_dir, adv_dir, total_num):
+    target_model_config = configs.get_target_model_config(dataset)
+
+    model = make_model(arch=arch, dataset=dataset)
     size = model.input_size[1]
     model = model.cuda()
 
+    label_dir = "TrueLabel.npy" if dataset == "ImageNet" else "cifar10_class_to_idx.npy"
+
     _, cln_data_loader = make_loader(
         image_dir=cln_dir,
-        label_dir="TrueLabel.npy",
+        label_dir=label_dir,
         phase="cln",
-        batch_size=configs.target_model_batch_size[arch],
+        batch_size=target_model_config[arch],
         total=total_num,
         size=size,
     )
 
     _, adv_data_loader = make_loader(
         image_dir=adv_dir,
-        label_dir="TrueLabel.npy",
+        label_dir=label_dir,
         phase="adv",
-        batch_size=configs.target_model_batch_size[arch],
+        batch_size=target_model_config[arch],
         total=total_num,
         size=size,
     )
@@ -53,20 +57,9 @@ def evaluate_with_natural_model(arch, cln_dir, adv_dir, total_num):
             adv_count += (adv_preds.detach().cpu() == cln_y).sum().item()
             success += (cln_preds != adv_preds).sum().item()
 
-        # for inputs, labels, indexs in adv_data_loader:
-        #     inputs = inputs.cuda()
-        #     labels = labels.cuda()
-
-        #     output = model(inputs)
-        #     _, preds = torch.max(output.data, dim=1)
-
-        #     total += inputs.size(0)
-        #     count += (preds == labels).sum().item()
-
     cln_acc = cln_count * 100.0 / total
     adv_acc = adv_count * 100.0 / total
     return cln_acc, adv_acc, success * 100.0 / total
-    # return cln_acc, adv_acc, count * 100.0 / total
 
 
 

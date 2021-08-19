@@ -50,7 +50,7 @@ class ImageNetDataset(torch.utils.data.Dataset):
             with Image.open(f) as image:
                 image = image.convert("RGB")
         image = self.transform(image)
-        label = self.class_to_idx[self.image_list[index].split(".")[0]]
+        label = self.class_to_idx[self.image_list[index].split(".")[0].split("_")[0]]
         return image, label, index
 
     def __len__(self):

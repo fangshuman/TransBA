@@ -12,6 +12,7 @@ checkpoints/
 *.JPEG
 
 *.pth
+*.pt
 
 read_log.py
 eps.py

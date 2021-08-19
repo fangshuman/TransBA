@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
-import pretrainedmodels
+
+import pretrainedmodels  # for ImageNet
+from . import cifar10_models    # for CIFAR-10
 
 class Wrap(nn.Module):
     def __init__(self, model):
@@ -17,7 +19,11 @@ class Wrap(nn.Module):
         return self.model.forward((x - self._mean) / self._std)
 
 
-def make_model(arch):      
-    model = pretrainedmodels.__dict__[arch](num_classes=1000, pretrained='imagenet')
-    return Wrap(model)
+def make_model(arch, dataset="ImageNet"):      
+    assert dataset in ["ImageNet", "CIFAR10"]
+    if dataset == "ImageNet":
+        model = pretrainedmodels.__dict__[arch](num_classes=1000, pretrained='imagenet')
+        return Wrap(model)
+    elif dataset == "CIFAR10":
+        return cifar10_models.make_model(arch)
 
