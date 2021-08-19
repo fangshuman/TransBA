@@ -227,7 +227,7 @@ def main():
 
         logger.info("\t".join([str(round(v, 2)) for v in acc_list]))
         logger.info(round(
-            (sum(acc_list) - acc_list[configs.target_model_names.index(source_model_name)]) / (len(configs.target_model_names) - 1), 2)
+            (sum(acc_list) - acc_list[_args.target_model.index(source_model_name)]) / (len(_args.target_model) - 1), 2)
         )
 
 
