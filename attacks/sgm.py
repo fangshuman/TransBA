@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .utils import normalize_by_pnorm
+from .base import Attack
 
 
 def backward_hook(gamma):
@@ -20,9 +21,15 @@ def backward_hook_norm(module, grad_in, grad_out):
     return (grad_in[0] / std,)
 
 
-class SGM_Attack(object):
-    def __init__(self, arch, model, loss_fn, args):
-        self.arch = arch
+class SGM_Attack(Attack):
+    config = {
+        'eps': 16,
+        'nb_iter': 10,
+        'eps_iter': 1.6,
+
+    }
+    def __init__(self, attach_method, model, loss_fn, args):
+        self.arch = args.source_model
         self.model = model
         self.loss_fn = loss_fn
         self.attack_method = args.attack_method
@@ -30,7 +37,7 @@ class SGM_Attack(object):
         default_value = {
             # basic default value
             'eps': 0.05,
-            'nb_iter': 10, 
+            'nb_iter': 10,
             'eps_iter': 0.005,
             'target': False,
             'gamma': 0.5,
@@ -48,25 +55,25 @@ class SGM_Attack(object):
             self.__dict__[key] = vars(args)[key]
         except:
             self.__dict__[key] = value
-     
-    
+
+
     def perturb(self, x, y):
         if "mi" in self.attack_method:
             g = torch.zeros_like(x)
 
         delta = torch.zeros_like(x)
         delta.requires_grad_()
-    
-        for i in range(self.nb_iter):     
+
+        for i in range(self.nb_iter):
             if "di" in self.attack_method:
                 outputs = self.model(self.input_diversity(x + delta))
             else:
-                outputs = self.model(x + delta)               
+                outputs = self.model(x + delta)
 
             loss = self.loss_fn(outputs, y)
             if self.target:
                 loss = -loss
-        
+
             loss.backward()
             grad = delta.grad.data
 
@@ -144,4 +151,3 @@ class SGM_Attack(object):
         kernel = torch.FloatTensor(kernel).expand(x.size(1), x.size(1), self.kernlen, self.kernlen)
         kernel = kernel.to(x.device)
         return kernel
-
