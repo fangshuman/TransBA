@@ -26,6 +26,7 @@ ImageNet_target_model = {
     "inceptionv3": 250,
     "inceptionv4": 250,
     "inceptionresnetv2": 250,
+    "robust_models": 100
 }
 
 CIFAR10_source_model = {

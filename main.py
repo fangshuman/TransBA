@@ -16,8 +16,7 @@ from models import get_model_config
 from dataset import make_loader, save_image
 from attacks import get_attack
 from evaluate import evaluate_with_natural_model
-
-# from eval_robust_models import evaluate_with_robust_model
+from eval_robust_models import evaluate_with_robust_model
 
 
 seed = 0
@@ -127,9 +126,9 @@ def main():
     source_model_config = get_model_config(global_args.dataset)
     target_model_config = get_model_config(global_args.dataset, is_source=False)
     if global_args.source_model == "":
-        global_args.source_model = source_model_config.keys()
+        global_args.source_model = list(source_model_config.keys())
     if global_args.target_model == "":
-        global_args.target_model = target_model_config.keys()
+        global_args.target_model = list(target_model_config.keys())
     assert set(global_args.source_model).issubset(set(source_model_config.keys()))
     assert set(global_args.target_model).issubset(set(target_model_config.keys()))
 
@@ -220,6 +219,7 @@ def main():
             for target_model_name in global_args.target_model:
                 if target_model_name == "robust_models":
                     correct_cnt, model_name = evaluate_with_robust_model(
+                        args.input_dir,
                         args.output_dir
                     )
                     for i in range(len(model_name)):
