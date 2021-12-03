@@ -9,10 +9,10 @@ from PIL import Image
 
 
 class ImageNetDataset(torch.utils.data.Dataset):
-    def __init__(self, image_dir, label_dir, phase, total=None, size=224):
+    def __init__(self, image_dir, phase, total=None, size=224):
         assert phase in ["cln", "adv"]
         self.image_dir = image_dir
-        self.class_to_idx = np.load(label_dir, allow_pickle=True)[()]
+        # self.class_to_idx = np.load(label_dir, allow_pickle=True)[()]
         self.image_list = os.listdir(image_dir)
         self.image_list.sort()
 
@@ -22,7 +22,7 @@ class ImageNetDataset(torch.utils.data.Dataset):
                 [
                     # transforms.Resize(int(size / 0.875)),
                     # transforms.CenterCrop(size),
-                    transforms.Resize(size), 
+                    transforms.Resize(size),
                     transforms.ToTensor(),
                 ]
             )
@@ -31,11 +31,11 @@ class ImageNetDataset(torch.utils.data.Dataset):
             self.image_list = [item for item in self.image_list if "png" in item]
             self.transform = transforms.Compose(
                 [
-                    transforms.Resize(size), 
+                    transforms.Resize(size),
                     transforms.ToTensor()
                 ]
             )
-        
+
         # assert len(self.image_list) == total
         if total is None:
             total = len(self.image_list)
@@ -50,7 +50,8 @@ class ImageNetDataset(torch.utils.data.Dataset):
             with Image.open(f) as image:
                 image = image.convert("RGB")
         image = self.transform(image)
-        label = self.class_to_idx[self.image_list[index].split(".")[0].split("_")[0]]
+        # label = self.class_to_idx[self.image_list[index].split(".")[0].split("_")[0]]
+        label = -1
         return image, label, index
 
     def __len__(self):
@@ -117,10 +118,10 @@ def make_loader(image_dir, label_dir, phase, batch_size=1, total=None, size=224)
     Return:
         list, dataloader
     """
-    if label_dir is None:
+    if label_dir is True:
         imgset = ImageFolderDataset(image_dir, total=total, size=size)
     else:
-        imgset = ImageNetDataset(image_dir, label_dir, phase, total=total, size=size)
+        imgset = ImageNetDataset(image_dir, phase, total=total, size=size)
     loader = torch.utils.data.DataLoader(imgset, batch_size=batch_size)
     return imgset.image_list, loader
 
