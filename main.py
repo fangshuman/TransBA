@@ -101,7 +101,6 @@ def attack_source_model(arch, args):
 
     # generate adversarial example
     model.eval()
-    attack.register_hook()
     for inputs, labels, indexs in tqdm(data_loader):
         inputs = inputs.cuda()
         labels = labels.cuda()
@@ -252,7 +251,7 @@ def main():
         logger.info(
             round(
                 (sum(acc_list) - result_source_in_target)
-                / (len(global_args.target_model) - int(result_source_in_target)),
+                / (len(global_args.target_model) - 1),
                 2,
             )
         )
