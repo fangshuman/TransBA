@@ -50,6 +50,9 @@ class SGM_Attack(Attack):
         for k, v in default_value.items():
             self.load_params(k, v, args)
 
+        self.register_hook()
+
+
     def load_params(self, key, value, args):
         try:
             self.__dict__[key] = vars(args)[key]
