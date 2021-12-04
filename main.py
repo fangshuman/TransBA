@@ -15,8 +15,8 @@ from models import make_model
 from models import get_model_config
 from dataset import make_loader, save_image
 from attacks import get_attack
-from evaluate import evaluate_with_natural_model
-from eval_robust_models import evaluate_with_robust_model
+from evaluate_NT_trained import evaluate_with_natural_model
+from evaluate_AT_trained import evaluate_with_robust_model
 
 
 seed = 0
@@ -148,6 +148,7 @@ def main():
         "not_valid",
         "folder_with_label",
         "dataset",
+        "gpu_id",
     ]
     log_name = [global_args.dataset]
     for a in white_arguments:
