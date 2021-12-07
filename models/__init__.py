@@ -57,8 +57,9 @@ CIFAR10_target_model = {
 
 
 class Wrap(nn.Module):
-    def __init__(self, model):
+    def __init__(self, arch, model):
         super(Wrap, self).__init__()
+        self.model_name = arch
         self.model = model
         self.mean = self.model.mean
         self.std = self.model.std
@@ -75,7 +76,7 @@ def make_model(arch, dataset="ImageNet"):
     assert dataset in ["ImageNet", "CIFAR10"]
     if dataset == "ImageNet":
         model = pretrainedmodels.__dict__[arch](num_classes=1000, pretrained="imagenet")
-        return Wrap(model)
+        return Wrap(arch, model)
     elif dataset == "CIFAR10":
         return cifar10_models.make_model(arch)
 
