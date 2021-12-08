@@ -94,7 +94,6 @@ class IFGSM_Based_Attacker(Attack):
 
             # scale-invariant: SI-FGSM
             if "si" in self.attack_method:
-                import ipdb; ipdb.set_trace()
                 grad = torch.zeros_like(img_x)
                 for i in range(self.scale_copies):
                     if "di" in self.attack_method:
