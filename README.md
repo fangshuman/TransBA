@@ -61,24 +61,36 @@ python3 main.py \
         --target-model xxx xxx xxx xxx xxx (optinal)
 ```
 
+#### I-FGSM based
+
 + I-FGSM:  `--attack-method i_fgsm`
 + MI-FGSM: `--attack-method mi_fgsm`
 + DI-FGSM: `--attack-method di_fgsm`
 + TI-FGSM: `--attack-method ti_fgsm`
 + combine: `--attack-method mi_di_ti_fgsm`
   
+#### VMI based
+
 + VMI-FGSM: `--attack-method vi_mi_fgsm`
 + combine:  `--attack-method vi_mi_xxx_fgsm`
+
+#### Patch-wise based
 
 + Patch-wise: `--attack-method pi_fgsm`
 + combine   : `--attack-method pi_xxx_fgsm`
 
+#### SGM based
+
 + SGM: `--attack-method sgm`
 + combine: `--attack-method sgm_xxx`
+
+#### Admix based
 
 + Admix: `--attack-method admix`
 + combine: `--attack-method admix_xxx`
   
+#### FIA based
+
 + FIA: `--attack-method fia`
 + combine: `--attack-method fia_xxx`
 
