@@ -3,10 +3,14 @@ import torch.nn as nn
 
 import pretrainedmodels  # for ImageNet
 from . import cifar10_models  # for CIFAR-10
+from .deit import *
 
 # source model
 ImageNet_source_model = {
     "vgg16_bn": {"source_model": "vgg16_bn", "batch_size": 32},
+    "vgg16": {"source_model": "vgg16", "batch_size": 32},
+    "vit": {"source_model": "vit", "batch_size": 32},
+    "deit": {"source_model": "deit", "batch_size": 32},
     "resnet50": {"source_model": "resnet50", "batch_size": 80},
     "resnet152": {"source_model": "resnet152", "batch_size": 50},
     "densenet121": {"source_model": "densenet121", "batch_size": 32},
@@ -16,7 +20,12 @@ ImageNet_source_model = {
     "inceptionresnetv2": {"source_model": "inceptionresnetv2", "batch_size": 32},
 }
 ImageNet_target_model = {
+    "vit": 100,
+    "deit": 100,
     "vgg16_bn": 100,
+    "vgg19_bn": 100,
+    "vgg16": 100,
+    "vgg19": 100,
     "resnet50": 250,
     "resnet101": 250,
     "resnet152": 250,
@@ -26,7 +35,7 @@ ImageNet_target_model = {
     "inceptionv3": 250,
     "inceptionv4": 250,
     "inceptionresnetv2": 250,
-    "robust_models": 100
+    "robust_models": 100,
 }
 
 CIFAR10_source_model = {
@@ -68,7 +77,26 @@ class Wrap(nn.Module):
 def make_model(arch, dataset="ImageNet"):
     assert dataset in ["ImageNet", "CIFAR10"]
     if dataset == "ImageNet":
-        model = pretrainedmodels.__dict__[arch](num_classes=1000, pretrained="imagenet")
+        if arch in ["vit", "deit"]:
+            if arch == "vit":
+                from pytorch_pretrained_vit import ViT
+
+                model = ViT("B_16_imagenet1k", pretrained=True)
+                model.mean = [0.5, 0.5, 0.5]
+                model.std = [0.5, 0.5, 0.5]
+                model.input_size = [384, 384]
+            elif arch == "deit":
+                model = torch.hub.load(
+                    "facebookresearch/deit:main",
+                    "deit_base_patch16_224",
+                    pretrained=True,
+                )
+                model.mean, model.std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
+                model.input_size = [224, 224]
+        else:
+            model = pretrainedmodels.__dict__[arch](
+                num_classes=1000, pretrained="imagenet"
+            )
         return Wrap(model)
     elif dataset == "CIFAR10":
         return cifar10_models.make_model(arch)

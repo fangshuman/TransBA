@@ -28,7 +28,7 @@ class SGM_Attack(Attack):
         'eps_iter': 1.6,
 
     }
-    def __init__(self, attach_method, model, loss_fn, args):
+    def __init__(self, attack_method, model, loss_fn, args):
         self.arch = args.source_model
         self.model = model
         self.loss_fn = loss_fn

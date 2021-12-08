@@ -1,11 +1,13 @@
 from .attacker import IFGSM_Based_Attacker
 from .sgm import SGM_Attack
 from .ila import ILA_Attack
+from .topo import Topo
 
 attack_map = {
     "fgsm": IFGSM_Based_Attacker,
     "sgm": SGM_Attack,
     "ila": ILA_Attack,
+    "topo": Topo,
 }
 
 
