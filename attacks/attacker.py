@@ -1,3 +1,4 @@
+from operator import imod
 import numpy as np
 import scipy.stats as st
 import torch
@@ -37,7 +38,7 @@ class IFGSM_Based_Attacker(Attack):
         self.model = model
         self.loss_fn = loss_fn
 
-        default_value = {
+        self.default_value = {
             # basic default value
             "eps": 0.05,
             "nb_iter": 10,
@@ -55,7 +56,7 @@ class IFGSM_Based_Attacker(Attack):
             "pi_gamma": 16,
             "pi_kern_size": 3,
         }
-        for k, v in default_value.items():
+        for k, v in self.default_value.items():
             self.load_params(k, v, args)
 
     def load_params(self, key, value, args):
@@ -91,13 +92,13 @@ class IFGSM_Based_Attacker(Attack):
             else:
                 img_x = x
 
-            # get gradient
+            # scale-invariant: SI-FGSM
             if "si" in self.attack_method:
                 grad = torch.zeros_like(img_x)
                 for i in range(self.scale_copies):
                     if "di" in self.attack_method:
                         outputs = self.model(
-                            self.input_diversity((img_x + delta) * (1.0 / pow(2, i)))
+                            self.input_diversity((img_x + delta) * (1.0 / pow(2, i)), prob=self.prob)
                         )
                     else:
                         outputs = self.model((img_x + delta) * (1.0 / pow(2, i)))
@@ -112,28 +113,19 @@ class IFGSM_Based_Attacker(Attack):
                 # get average value of gradient
                 grad = grad / self.scale_copies
 
-            else:
-                if "di" in self.attack_method:
-                    outputs = self.model(self.input_diversity(img_x + delta, prob=self.prob))
-                else:
-                    outputs = self.model(img_x + delta)
-
-                loss = self.loss_fn(outputs, y)
-                if self.target:
-                    loss = -loss
-
-                loss.backward()
-                grad = delta.grad.data
-
             # variance: VI-FGSM
-            if "vi" in self.attack_method:
+            elif "vi" in self.attack_method:
                 global_grad = torch.zeros_like(img_x)
+
                 for i in range(self.vi_sample_n):
                     r = (torch.rand_like(img_x) - 0.5) * 2  # scale [0,1] to [-1,1]
                     r *= self.vi_sample_beta * self.eps  # scale [-1,1] to [-beta*eps, beta*eps]
                     r.requires_grad_()
 
-                    outputs = self.model((img_x + delta).data + r)
+                    if "di" in self.attack_method:
+                        outputs = self.model(self.input_diversity((img_x + delta).data + r, prob=self.prob))
+                    else:
+                        outputs = self.model((img_x + delta).data + r)
 
                     loss = self.loss_fn(outputs, y)
                     if self.target:
@@ -151,12 +143,25 @@ class IFGSM_Based_Attacker(Attack):
                 # return current_grad
                 grad = current_grad
 
+            else:
+                if "di" in self.attack_method:
+                    outputs = self.model(self.input_diversity(img_x + delta, prob=self.prob))
+                else:
+                    outputs = self.model(img_x + delta)
+
+                loss = self.loss_fn(outputs, y)
+                if self.target:
+                    loss = -loss
+
+                loss.backward()
+                grad = delta.grad.data
+
             # Gaussian kernel: TI-FGSM
             if "ti" in self.attack_method:
                 grad = F.conv2d(grad, kernel, padding=self.kernlen // 2)
 
             # momentum: MI-FGSM / NI-FGSM
-            if "mi_" in self.attack_method or "ni" in self.attack_method:
+            if "mi" in self.attack_method or "ni" in self.attack_method:
                 # g = self.decay_factor * g + normalize_by_pnorm(grad, p=1)
                 g = self.decay_factor * g + grad / torch.abs(grad).sum([1,2,3], keepdim=True)
                 grad = g
