@@ -82,6 +82,7 @@ def make_model(arch, dataset="ImageNet"):
     if dataset == "ImageNet":
         if arch in ["vit", "deit"]:
             if arch == "vit":
+                # https://github.com/lukemelas/PyTorch-Pretrained-ViT
                 from pytorch_pretrained_vit import ViT
 
                 model = ViT("B_16_imagenet1k", pretrained=True)
@@ -89,6 +90,7 @@ def make_model(arch, dataset="ImageNet"):
                 model.std = [0.5, 0.5, 0.5]
                 model.input_size = [384, 384]
             elif arch == "deit":
+                # https://github.com/facebookresearch/deit
                 model = torch.hub.load(
                     "facebookresearch/deit:main",
                     "deit_base_patch16_224",
