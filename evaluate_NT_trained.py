@@ -7,7 +7,7 @@ import torch
 from models import make_model
 from models import get_model_config
 from dataset import make_loader
-# from eval_robust_models import evaluate_with_robust_model
+from eval_robust_models import evaluate_with_robust_model
 
 
 def evaluate_with_natural_model(arch, dataset, cln_dir, adv_dir, total_num):
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     acc_list = []
     for target_model_name in args.target_model:
         if target_model_name == "robust_models":
-            correct_cnt, model_name = evaluate_with_robust_model(args.adver_dir)
+            correct_cnt, model_name = evaluate_with_robust_model(args.clean_dir, args.adver_dir)
             for i in range(len(model_name)):
                 acc = correct_cnt[i] * 100.0 / args.total_num
                 acc_list.append(acc)
