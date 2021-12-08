@@ -1,4 +1,5 @@
 from .attacker import IFGSM_Based_Attacker
+from .admix import Admix_Attacker
 from .sgm import SGM_Attacker
 from .ila import ILA_Attacker
 from .fia import FIA_Attacker
@@ -15,6 +16,10 @@ def get_attack(attack_method, model=None, loss_fn=None, args=None):
     def _get_attack(attack_method):
         if attack_method in attack_map:
             return attack_map[attack_method]
+        elif attack_method.startswith("sgm"):
+            return SGM_Attacker
+        elif attack_method.startswith("admix"):
+            return Admix_Attacker
         elif attack_method.startswith("fia"):
             return FIA_Attacker
         elif attack_method.endswith("fgsm"):

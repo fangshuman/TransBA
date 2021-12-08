@@ -97,7 +97,7 @@ class IFGSM_Based_Attacker(Attack):
                 for i in range(self.scale_copies):
                     if "di" in self.attack_method:
                         outputs = self.model(
-                            self.input_diversity(img_x + delta) * (1.0 / pow(2, i))
+                            self.input_diversity((img_x + delta) * (1.0 / pow(2, i)))
                         )
                     else:
                         outputs = self.model((img_x + delta) * (1.0 / pow(2, i)))
