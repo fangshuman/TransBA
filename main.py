@@ -63,7 +63,7 @@ def get_args():
     parser.add_argument("--pi-beta", type=float, help="Patch-wise Attack")
     parser.add_argument("--pi-gamma", type=float, help="Patch-wise Attack")
     parser.add_argument("--pi-kern-size", type=float, help="Patch-wise Attack")
-    # * Admix 
+    # * Admix
     parser.add_argument("--admix-m1", type=float, help="Patch-wise Attack")
     parser.add_argument("--admix-m2", type=float, help="Patch-wise Attack")
     parser.add_argument("--admix-portion", type=float, help="Patch-wise Attack")
@@ -135,6 +135,7 @@ def attack_source_model(arch, args):
             img_list=img_list,
             output_dir=args.output_dir,
         )
+    del model
 
 
 def main():
@@ -258,21 +259,21 @@ def main():
                     logger.info(f"Success rate: {suc_rate:.2f}%")
                     logger.info(f"Transfer done.")
 
-        torch.cuda.empty_cache()
+            torch.cuda.empty_cache()
 
-        logger.info("\t".join([str(round(v, 2)) for v in acc_list]))
-        result_source_in_target = (
-            acc_list[global_args.target_model.index(source_model_name)]
-            if source_model_name in global_args.target_model
-            else 0
-        )
-        logger.info(
-            round(
-                (sum(acc_list) - result_source_in_target)
-                / (len(global_args.target_model) - 1),
-                2,
+            logger.info("\t".join([str(round(v, 2)) for v in acc_list]))
+            result_source_in_target = (
+                acc_list[global_args.target_model.index(source_model_name)]
+                if source_model_name in global_args.target_model
+                else 0
             )
-        )
+            logger.info(
+                round(
+                    (sum(acc_list) - result_source_in_target)
+                    / (len(global_args.target_model) - int(result_source_in_target > 0)),
+                    2,
+                )
+            )
 
 
 if __name__ == "__main__":

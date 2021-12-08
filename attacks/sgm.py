@@ -29,7 +29,7 @@ def backward_hook_norm(module, grad_in, grad_out):
 
 
 class SGM_Attacker(IFGSM_Based_Attacker):
-    def get_config(arch):    
+    def get_config(arch):
         config = super().get_config(arch)
         config['sgm_gamma'] = get_default_gamma(arch)
         return config
@@ -78,4 +78,3 @@ class SGM_Attacker(IFGSM_Based_Attacker):
             for name, module in self.model.named_modules():
                 if 'relu' in name and not 'transition' in name:
                     module.register_backward_hook(backward_hook_sgm)
-
