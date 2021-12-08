@@ -1,3 +1,4 @@
+from operator import imod
 import numpy as np
 import scipy.stats as st
 import torch
@@ -93,6 +94,7 @@ class IFGSM_Based_Attacker(Attack):
 
             # scale-invariant: SI-FGSM
             if "si" in self.attack_method:
+                import ipdb; ipdb.set_trace()
                 grad = torch.zeros_like(img_x)
                 for i in range(self.scale_copies):
                     if "di" in self.attack_method:
@@ -113,7 +115,7 @@ class IFGSM_Based_Attacker(Attack):
                 grad = grad / self.scale_copies
 
             # variance: VI-FGSM
-            if "vi" in self.attack_method:
+            elif "vi" in self.attack_method:
                 global_grad = torch.zeros_like(img_x)
 
                 for i in range(self.vi_sample_n):
