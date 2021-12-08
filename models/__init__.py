@@ -100,7 +100,7 @@ def make_model(arch, dataset="ImageNet"):
             model = pretrainedmodels.__dict__[arch](
                 num_classes=1000, pretrained="imagenet"
             )
-        return Wrap(model)
+        return Wrap(arch, model)
     elif dataset == "CIFAR10":
         return cifar10_models.make_model(arch)
 
