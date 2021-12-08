@@ -3,14 +3,12 @@ from .admix import Admix_Attacker
 from .sgm import SGM_Attacker
 from .ila import ILA_Attacker
 from .fia import FIA_Attacker
-from .topo import Topo
 
 attack_map = {
     "fgsm": IFGSM_Based_Attacker,
     "sgm": SGM_Attacker,
     "ila": ILA_Attacker,
     "fia": FIA_Attacker,
-    "topo": Topo,
 }
 
 
