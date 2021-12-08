@@ -163,7 +163,8 @@ class IFGSM_Based_Attacker(Attack):
             # momentum: MI-FGSM / NI-FGSM
             if "mi" in self.attack_method or "ni" in self.attack_method:
                 # g = self.decay_factor * g + normalize_by_pnorm(grad, p=1)
-                g = self.decay_factor * g + grad / torch.abs(grad).sum([1,2,3], keepdim=True)
+                # g = self.decay_factor * g + grad / torch.abs(grad).sum([1,2,3], keepdim=True)
+                g = self.decay_factor * g + grad / torch.abs(grad).mean([1,2,3], keepdim=True)
                 grad = g
                 
             # Patch-wise attach: PI-FGSM
