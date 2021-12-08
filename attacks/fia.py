@@ -25,12 +25,6 @@ class FIA_Attacker(IFGSM_Based_Attacker):
             "kernlen": 7, 
             "nsig": 3,
             "decay_factor": 1.0,  
-            "scale_copies": 5,      # for si
-            "vi_sample_n": 20,      # for vi
-            "vi_sample_beta": 1.5,  # for vi
-            "pi_beta": 10,          # for pi (patch-wise)
-            "pi_gamma": 16,         # for pi (patch-wise)
-            "pi_kern_size": 3,      # for pi (patch-wise)
 
             "fia_ens": 30,                         # for FIA
             "fia_probb": 0.9,                      # for FIA (1 - 0.9 = 0.1)
