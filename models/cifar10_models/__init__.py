@@ -10,8 +10,9 @@ from . import mobilenetv2
 
 
 class Wrap(nn.Module):
-    def __init__(self, model):
+    def __init__(self, arch, model):
         super(Wrap, self).__init__()
+        self.model_name = arch
         self.model = model
         self.mean = [0.4914, 0.4822, 0.4465]
         self.std  = [0.2471, 0.2435, 0.2616]
@@ -39,5 +40,5 @@ def make_model(arch):
         model = getattr(mobilenetv2, arch)(pretrained=True)
     else:
         raise NotImplementedError(f"No such cifar model: {arch}")
-    return Wrap(model)
+    return Wrap(arch, model)
 

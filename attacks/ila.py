@@ -132,7 +132,7 @@ class ILAProjLoss(nn.Module):
         return proj_loss
 
 
-class ILA_Attack(Attack):
+class ILA_Attacker(Attack):
     config = {
         "eps": 16,
         "nb_iter": 20,

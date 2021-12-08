@@ -7,17 +7,19 @@ from .deit import *
 
 # source model
 ImageNet_source_model = {
+    "vgg16": {"source_model": "vgg16_bn", "batch_size": 32},
     "vgg16_bn": {"source_model": "vgg16_bn", "batch_size": 32},
-    "vgg16": {"source_model": "vgg16", "batch_size": 32},
     "vit": {"source_model": "vit", "batch_size": 32},
     "deit": {"source_model": "deit", "batch_size": 32},
+    "vgg19": {"source_model": "vgg16_bn", "batch_size": 32},
+    "vgg19_bn": {"source_model": "vgg16_bn", "batch_size": 32},
     "resnet50": {"source_model": "resnet50", "batch_size": 80},
     "resnet152": {"source_model": "resnet152", "batch_size": 50},
     "densenet121": {"source_model": "densenet121", "batch_size": 32},
     "densenet201": {"source_model": "densenet201", "batch_size": 32},
     "inceptionv3": {"source_model": "inceptionv3", "batch_size": 64},
     "inceptionv4": {"source_model": "inceptionv4", "batch_size": 32},
-    "inceptionresnetv2": {"source_model": "inceptionresnetv2", "batch_size": 32},
+    "inceptionresnetv2": {"source_model": "inceptionresnetv2", "batch_size": 16},
 }
 ImageNet_target_model = {
     "vit": 100,
@@ -60,8 +62,9 @@ CIFAR10_target_model = {
 
 
 class Wrap(nn.Module):
-    def __init__(self, model):
+    def __init__(self, arch, model):
         super(Wrap, self).__init__()
+        self.model_name = arch
         self.model = model
         self.mean = self.model.mean
         self.std = self.model.std

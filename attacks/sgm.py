@@ -8,6 +8,14 @@ from .utils import normalize_by_pnorm
 from .base import Attack
 
 
+def get_default_gamma(arch):
+    if arch in ["resnet18", "resnet34", "resnet50", "resnet101", "resnet152"]:
+        return 0.2
+    elif arch in ["densenet121", "densenet169", "densenet201"]:
+        return 0.5
+    else:
+        return 1.
+
 def backward_hook(gamma):
     # implement SGM through grad through ReLU
     def _backward_hook(module, grad_in, grad_out):
@@ -21,13 +29,16 @@ def backward_hook_norm(module, grad_in, grad_out):
     return (grad_in[0] / std,)
 
 
-class SGM_Attack(Attack):
-    config = {
-        'eps': 16,
-        'nb_iter': 10,
-        'eps_iter': 1.6,
+class SGM_Attacker(Attack):
+    def get_config(arch):
+        config = {
+            'eps': 16,
+            'nb_iter': 10,
+            'eps_iter': 1.6,
+            'sgm_gamma': get_default_gamma(arch),
+        }
+        return config
 
-    }
     def __init__(self, attack_method, model, loss_fn, args):
         self.arch = args.source_model
         self.model = model
@@ -40,7 +51,7 @@ class SGM_Attack(Attack):
             'nb_iter': 10,
             'eps_iter': 0.005,
             'target': False,
-            'gamma': 0.5,
+            'sgm_gamma': 0.5,
             # extra default value
             'decay_factor': 1.0,
             'prob': 0.5,
@@ -49,6 +60,9 @@ class SGM_Attack(Attack):
         }
         for k, v in default_value.items():
             self.load_params(k, v, args)
+
+        self.register_hook()
+
 
     def load_params(self, key, value, args):
         try:
@@ -102,9 +116,9 @@ class SGM_Attack(Attack):
         if self.arch in ["resnet18", "resnet34", "resnet50", "resnet101", "resnet152"]:
             if self.arch in ["resnet50", "resnet101", "resnet152"]:
                 # There are 2 ReLU in Conv module ResNet-50/101/152
-                gamma = np.power(self.gamma, 0.5)
+                gamma = np.power(self.sgm_gamma, 0.5)
             else:
-                gamma = self.gamma
+                gamma = self.sgm_gamma
             backward_hook_sgm = backward_hook(gamma)
 
             for name, module in self.model.named_modules():
@@ -115,7 +129,7 @@ class SGM_Attack(Attack):
 
         elif self.arch in ["densenet121", "densenet169", "densenet201"]:
             # There are 2 ReLU in Conv module DenseNet-121/169/201
-            gamma = np.power(self.gamma, 0.5)
+            gamma = np.power(self.sgm_gamma, 0.5)
             backward_hook_sgm = backward_hook(gamma)
 
             for name, module in self.model.named_modules():

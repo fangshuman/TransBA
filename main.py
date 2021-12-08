@@ -15,8 +15,8 @@ from models import make_model
 from models import get_model_config
 from dataset import make_loader, save_image
 from attacks import get_attack
-from evaluate import evaluate_with_natural_model
-from eval_robust_models import evaluate_with_robust_model
+from evaluate_NT_trained import evaluate_with_natural_model
+from evaluate_AT_trained import evaluate_with_robust_model
 
 
 seed = 0
@@ -51,14 +51,32 @@ def get_args():
     parser.add_argument("--eps", type=float)
     parser.add_argument("--nb-iter", type=int)
     parser.add_argument("--eps-iter", type=float)
-    parser.add_argument("--kernlen", type=int, help="for ti-fgsm")
-    parser.add_argument("--nsig", type=int, help="for ti-fgsm")
-    parser.add_argument("--prob", type=float, help="for di-fgsm")
-    parser.add_argument("--decay-factor", type=float, help="for mi-fgsm")
-    parser.add_argument("--gamma", type=float, help="for sgm gamma < 1.0")
-    parser.add_argument("--ila-layer", type=int, help="for ila")
-    parser.add_argument("--step_size_pgd", type=float, help="for ila")
-    parser.add_argument("--step_size_ila", type=float, help="for ila")
+    parser.add_argument("--kernlen", type=int, help="TI-FGSM")
+    parser.add_argument("--nsig", type=int, help="TI-FGSM")
+    parser.add_argument("--prob", type=float, help="DI-FGSM")
+    parser.add_argument("--decay-factor", type=float, help="MI-FGSM / NI-FGSM")
+    parser.add_argument("--scale-copies", type=float, help="SI-FGSM")
+    # * VMI-FGSM
+    parser.add_argument("--vi-sample-n", type=float, help="VMI-FGSM")
+    parser.add_argument("--vi-sample-beta", type=float, help="VMI-FGSM")
+    # * PI-FGSM (Patch-wise Attack)
+    parser.add_argument("--pi-beta", type=float, help="Patch-wise Attack")
+    parser.add_argument("--pi-gamma", type=float, help="Patch-wise Attack")
+    parser.add_argument("--pi-kern-size", type=float, help="Patch-wise Attack")
+    # * Admix
+    parser.add_argument("--admix-m1", type=float, help="Patch-wise Attack")
+    parser.add_argument("--admix-m2", type=float, help="Patch-wise Attack")
+    parser.add_argument("--admix-portion", type=float, help="Patch-wise Attack")
+    # * SGM (Skip Connections Matter)
+    parser.add_argument("--sgm-gamma", type=float, help="SGM")
+    # * FIA (Feature Importance-aware Attack)
+    parser.add_argument("--fia-ens", type=float, help="FIA")
+    parser.add_argument("--fia-probb", type=float, help="FIA")
+    parser.add_argument("--fia-opt-layer", type=str, help="FIA")
+    # * ILA (Intermediate Level Attack)
+    parser.add_argument("--ila-layer", type=int, help="ILA")
+    parser.add_argument("--step-size-pgd", type=float, help="ILA")
+    parser.add_argument("--step-size-ila", type=float, help="ILA")
     parser.add_argument(
         "--not-valid", help="validate adversarial example", action="store_true"
     )
@@ -101,7 +119,6 @@ def attack_source_model(arch, args):
 
     # generate adversarial example
     model.eval()
-    attack.register_hook()
     for inputs, labels, indexs in tqdm(data_loader):
         inputs = inputs.cuda()
         labels = labels.cuda()
@@ -150,6 +167,7 @@ def main():
         "not_valid",
         "folder_with_label",
         "dataset",
+        "gpu_id",
     ]
     log_name = [global_args.dataset]
     for a in white_arguments:
@@ -184,7 +202,9 @@ def main():
     # generate adversarial examples
     logger.info(f"Generate adversarial examples with {global_args.attack_method}")
     for i, source_model_name in enumerate(global_args.source_model):
-        logger.info(f"Attacking {source_model_name}...")
+        logger.info(
+            f"[{i+1} / {len(global_args.source_model)}] source model: {source_model_name}"
+        )
 
         # make output dir
         output_dir = os.path.join(output_root_dir, source_model_name)
@@ -194,7 +214,7 @@ def main():
 
         # load config
         model_config = source_model_config[source_model_name]
-        attack_method_config = get_attack(global_args.attack_method).config
+        attack_method_config = get_attack(global_args.attack_method).get_config(source_model_name)
         args = vars(global_args)
         args = {
             **model_config,
@@ -208,9 +228,6 @@ def main():
         logger.info(args)
 
         # begin attack
-        logger.info(
-            f"[{i+1} / {len(global_args.source_model)}] source model: {source_model_name}"
-        )
         attack_source_model(source_model_name, args)
         logger.info(f"Attack finished.")
 
