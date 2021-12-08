@@ -90,20 +90,14 @@ class Admix_Attacker(IFGSM_Based_Attacker):
             # Admix
             grad = torch.zeros_like(x)
             for _ in range(self.admix_m2):
-                bs, c, w, h = x.shape
                 indices = np.arange(0, x.shape[0])
                 np.random.shuffle(indices)
 
-                x_admix = (x + delta).data + self.admix_portion * (x[indices] + delta[indices]).data
+                x_admix = (x + delta) + self.admix_portion * (x[indices] + delta[indices])
 
-                batch_grad = torch.zeros(
-                    (bs*self.admix_m1, c, w, h),
-                    device=x.device,
-                    requires_grad=True,
-                )
                 # import ipdb; ipdb.set_trace()
                 x_batch = torch.cat([
-                    x_admix * (1.0 / pow(2, si)) + batch_grad[si*bs: (si+1)*bs]
+                    x_admix * (1.0 / pow(2, si))
                     for si in range(self.admix_m1)
                 ], dim=0)
 
@@ -116,18 +110,15 @@ class Admix_Attacker(IFGSM_Based_Attacker):
                 loss.backward()
 
                 # import ipdb; ipdb.set_trace()
-                batch_grad_sum = torch.stack(torch.split(batch_grad.grad.data, self.admix_m1)).sum(dim=1)
-                grad += batch_grad_sum
-                batch_grad.grad.data.zero_()
-                # grad += delta.grad.data
-                # delta.grad.data.zero_()
+                grad += delta.grad.data
+                delta.grad.data.zero_()
         
             # Gaussian kernel: TI-FGSM
             if "ti" in self.attack_method:
                 grad = F.conv2d(grad, kernel, padding=self.kernlen // 2)
 
             # momentum: MI-FGSM / NI-FGSM
-            if "mi_" in self.attack_method or "ni" in self.attack_method:
+            if "mi" in self.attack_method or "ni" in self.attack_method:
                 g = self.decay_factor * g + grad / torch.abs(grad).sum([1,2,3], keepdim=True)
                 grad = g
 
@@ -136,11 +127,7 @@ class Admix_Attacker(IFGSM_Based_Attacker):
             delta.data = torch.clamp(delta.data, -self.eps, self.eps)
             delta.data = torch.clamp(x.data + delta, 0.0, 1.0) - x
 
-            # delta.grad.data.zero_()
-            try:
-                delta.grad.data.zero_()
-            except:
-                pass
+            delta.grad.data.zero_()
 
         x_adv = torch.clamp(x + delta, 0.0, 1.0)
         return x_adv
