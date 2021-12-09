@@ -7,7 +7,7 @@ import torch
 from models import make_model
 from models import get_model_config
 from dataset import make_loader
-from eval_robust_models import evaluate_with_robust_model
+from evaluate_AT_trained import evaluate_with_robust_model
 
 
 def evaluate_with_natural_model(arch, dataset, cln_dir, adv_dir, total_num):
