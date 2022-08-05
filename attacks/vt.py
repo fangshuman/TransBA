@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from .base_attacker import Based_Attacker
 
     
-class Admix_Attacker(Based_Attacker):
+class VT_Attacker(Based_Attacker):
     def get_config(arch):
         config = {
             "eps": 16,
@@ -16,9 +16,8 @@ class Admix_Attacker(Based_Attacker):
             "nsig": 3,
             "decay_factor": 1.0,  
 
-            "admix_m1": 5,          # for Admix
-            "admix_m2": 3,          # for Admix
-            "admix_portion": 0.2,   # for Admix
+            "vt_sample_n": 20,      # for vt
+            "vt_sample_beta": 1.5,  # for vt
         }
         return config
 
@@ -41,9 +40,8 @@ class Admix_Attacker(Based_Attacker):
             "nsig": 3,
             "decay_factor": 1.0,
             # for Admix
-            "admix_m1": 5,   
-            "admix_m2": 3,   
-            "admix_portion": 0.2,
+            "vt_sample_n": 20,      # for vt
+            "vt_sample_beta": 1.5,  # for vt
         }
         for k, v in default_value.items():
             self.load_params(k, v, args)
@@ -54,10 +52,6 @@ class Admix_Attacker(Based_Attacker):
             loss_fn=loss_fn,
             args=args
         )
-        
-        self.mediate_grad   = None
-        self.mediate_output = None
-        
 
     def load_params(self, key, value, args):
         try:

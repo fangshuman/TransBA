@@ -1,10 +1,9 @@
-import ipdb
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .attacker import IFGSM_Based_Attacker
+from .base_attacker import Based_Attacker
 
 
 def get_default_gamma(arch):
@@ -28,7 +27,7 @@ def backward_hook_norm(module, grad_in, grad_out):
     return (grad_in[0] / std,)
 
 
-class SGM_Attacker(IFGSM_Based_Attacker):
+class SGM_Attacker(Based_Attacker):
     def get_config(arch):
         config = super().get_config(arch)
         config['sgm_gamma'] = get_default_gamma(arch)

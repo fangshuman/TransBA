@@ -1,14 +1,12 @@
-from operator import imod
 import numpy as np
 import scipy.stats as st
 import torch
 import torch.nn.functional as F
 
-from .utils import normalize_by_pnorm
 from .base import Attack
 
     
-class IFGSM_Based_Attacker(Attack):
+class Patchwise_Attacker(Attack):
     def get_config(arch):
         config = {
             "eps": 16,
@@ -18,9 +16,6 @@ class IFGSM_Based_Attacker(Attack):
             "kernlen": 7, 
             "nsig": 3,
             "decay_factor": 1.0,  
-            "scale_copies": 5,      # for si
-            "vi_sample_n": 20,      # for vi
-            "vi_sample_beta": 1.5,  # for vi
             "pi_beta": 10,          # for pi (patch-wise)
             "pi_gamma": 16,         # for pi (patch-wise)
             "pi_kern_size": 3,      # for pi (patch-wise)
@@ -49,9 +44,6 @@ class IFGSM_Based_Attacker(Attack):
             "kernlen": 7,
             "nsig": 3,
             "decay_factor": 1.0,
-            "scale_copies": 5,
-            "vi_sample_n": 20,
-            "vi_sample_beta": 1.5,
             "pi_beta": 10,
             "pi_gamma": 16,
             "pi_kern_size": 3,
@@ -70,103 +62,53 @@ class IFGSM_Based_Attacker(Attack):
 
         # initialize extra var
         if "ti" in self.attack_method:
-            kernel = self.get_Gaussian_kernel(x, kernlen=self.kernlen, nsig=self.nsig)
+            ti_kernel = self.get_Gaussian_kernel(kernlen=self.kernlen, nsig=self.nsig)
         if "mi" in self.attack_method or "ni" in self.attack_method: 
             g = torch.zeros_like(x)
-        if "vi" in self.attack_method:
-            variance = torch.zeros_like(x)
-        if "pi" in self.attack_method:
-            amplification = torch.zeros_like(x)
-            eps_iter *= self.pi_beta
-            pi_kernel = self.get_project_kernel(kern_size=self.pi_kern_size)
-            if self.pi_gamma > 1:
-                self.pi_gamma /= 255.
+    
+        amplification = torch.zeros_like(x)
+        eps_iter *= self.pi_beta
+        pi_kernel = self.get_project_kernel(kern_size=self.pi_kern_size)
+        if self.pi_gamma > 1:
+            self.pi_gamma /= 255.
 
-        extra_item = torch.zeros_like(x)
         delta = torch.zeros_like(x)
         delta.requires_grad_()
 
         for i in range(self.nb_iter):
             img_x = x + delta
-            if "ni" in self.attack_method:
-                img_x = img_x + self.decay_factor * eps_iter * g
-            
-            if "si" in self.attack_method:
-                img_x = torch.cat([
-                    img_x * (1.0 / pow(2, si))
-                    for si in range(self.scale_copies)
-                ], dim=0)
-                if i==0:
-                    y = y.repeat(self.scale_copies,)
-            
             if "di" in self.attack_method:
                 img_x = self.input_diversity(img_x)
 
             outputs = self.model(img_x)
-
             loss = self.loss_fn(outputs, y)
-            if self.target:
-                loss = -loss
-
             loss.backward()
+
             grad = delta.grad.data
-
-            # variance: VI-FGSM
-            if "vi" in self.attack_method:
-                global_grad = torch.zeros_like(img_x)
-
-                for i in range(self.vi_sample_n):
-                    r = (torch.rand_like(img_x) - 0.5) * 2  # scale [0,1] to [-1,1]
-                    r *= self.vi_sample_beta * self.eps  # scale [-1,1] to [-beta*eps, beta*eps]
-                    r.requires_grad_()
-
-                    outputs = self.model(img_x.data + r)
-
-                    loss = self.loss_fn(outputs, y)
-                    if self.target:
-                        loss = -loss
-
-                    loss.backward()
-                    global_grad += r.grad.data
-                    r.grad.data.zero_()
-
-                # import ipdb; ipdb.set_trace()
-                current_grad = grad + variance
-
-                if "si" in self.attack_method:
-                    global_grad = torch.stack(torch.split(global_grad, self.scale_copies)).mean(dim=1)
-
-                # update variance
-                variance = global_grad / (1.0 * self.vi_sample_n) - grad
-
-                # return current_grad
-                grad = current_grad
-
 
             # Gaussian kernel: TI-FGSM
             if "ti" in self.attack_method:
-                grad = F.conv2d(grad, kernel, padding=self.kernlen // 2)
+                # grad = F.conv2d(grad, kernel, padding=self.kernlen // 2)
+                # grad = F.conv2d(grad, kernel, padding=(self.kernlen//2, self.kernlen//2), groups=3)
+                grad = self.kernel_conv(grad, ti_kernel, kern_size=(self.kernlen//2, self.kernlen//2), groups=3)
 
             # momentum: MI-FGSM / NI-FGSM
             if "mi" in self.attack_method or "ni" in self.attack_method:
                 # g = self.decay_factor * g + normalize_by_pnorm(grad, p=1)
-                # g = self.decay_factor * g + grad / torch.abs(grad).sum([1,2,3], keepdim=True)
                 g = self.decay_factor * g + grad / torch.abs(grad).mean([1,2,3], keepdim=True)
                 grad = g
                 
             # Patch-wise attach: PI-FGSM
-            if "pi" in self.attack_method:
-                amplification += eps_iter * grad.data.sign()
-                cut_noise = torch.clamp(abs(amplification) - self.eps, 0, 1e5) * amplification.sign()
-                projection = (
-                    self.pi_gamma
-                    * (self.project_noise(cut_noise, pi_kernel, self.pi_kern_size//2)).sign()
-                )
-                amplification += projection
-                extra_item = projection  # return extra item
+            amplification += eps_iter * grad.data.sign()
+            cut_noise = torch.clamp(abs(amplification) - self.eps, 0, 1e5) * amplification.sign()
+            projection = (
+                self.pi_gamma
+                * (self.kernel_conv(cut_noise, pi_kernel, self.pi_kern_size//2)).sign()
+            )
+            amplification += projection
 
             grad_sign = grad.data.sign()
-            delta.data = delta.data + eps_iter * grad_sign + extra_item
+            delta.data = delta.data + eps_iter * grad_sign + projection
             delta.data = torch.clamp(delta.data, -self.eps, self.eps)
             delta.data = torch.clamp(x.data + delta, 0.0, 1.0) - x
 
@@ -176,18 +118,19 @@ class IFGSM_Based_Attacker(Attack):
         return x_adv
 
 
-    def input_diversity(self, img, prob=0.5):
+    def input_diversity(self, img, prob=0.5, rescale=None):
         size = img.size(2)
-        resize = int(size / 0.875)
+        if rescale is None:
+            rescale = int(size / 0.875)
 
         gg = torch.rand(1).item()
         if gg >= prob:
             return img
         else:
-            rnd = torch.randint(size, resize + 1, (1,)).item()
+            rnd = torch.randint(size, rescale + 1, (1,)).item()
             rescaled = F.interpolate(img, (rnd, rnd), mode="nearest")
-            h_rem = resize - rnd
-            w_hem = resize - rnd
+            h_rem = rescale - rnd
+            w_hem = rescale - rnd
             pad_top = torch.randint(0, h_rem + 1, (1,)).item()
             pad_bottom = h_rem - pad_top
             pad_left = torch.randint(0, w_hem + 1, (1,)).item()
@@ -196,16 +139,21 @@ class IFGSM_Based_Attacker(Attack):
             padded = F.interpolate(padded, (size, size), mode="nearest")
             return padded
 
-    def get_Gaussian_kernel(self, x, kernlen=21, nsig=3):
+    def get_Gaussian_kernel(self, kernlen=21, nsig=3):
         # define Gaussian kernel
         kern1d = st.norm.pdf(np.linspace(-nsig, nsig, kernlen))
         kernel = np.outer(kern1d, kern1d)
         kernel = kernel / kernel.sum()
-        kernel = torch.FloatTensor(kernel).expand(
-            x.size(1), x.size(1), kernlen, kernlen
-        )
-        kernel = kernel.to(x.device)
-        return kernel
+        # kernel = torch.FloatTensor(kernel).expand(
+        #     x.size(1), x.size(1), kernlen, kernlen
+        # )
+        # kernel = kernel.to(x.device)
+        # return kernel
+        stack_kern = np.stack([kernel, kernel, kernel])
+        stack_kern = np.expand_dims(stack_kern, 1)
+        stack_kern = torch.FloatTensor(stack_kern).cuda()
+        # print(stack_kern.shape)
+        return stack_kern
 
     def get_project_kernel(self, kern_size=3):
         kern = np.ones((kern_size, kern_size), dtype=np.float32) / (kern_size ** 2 - 1)
@@ -216,7 +164,7 @@ class IFGSM_Based_Attacker(Attack):
         stack_kern = torch.tensor(stack_kern).cuda()
         return stack_kern
 
-    def project_noise(self, x, stack_kern, kern_size):
-        x = F.conv2d(x, stack_kern, padding=(kern_size, kern_size), groups=3)
+    def kernel_conv(self, x, stack_kern, kern_size, groups=3):
+        x = F.conv2d(x, stack_kern, padding=(kern_size, kern_size), groups=groups)
         return x
 

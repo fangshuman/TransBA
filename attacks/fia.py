@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 from attacks.utils import normalize_by_pnorm
 
-from .attacker import IFGSM_Based_Attacker
+from .base_attacker import Based_Attacker
 
 
 layer_name_map = {
@@ -15,7 +15,7 @@ layer_name_map = {
     "resnet152": "layer4.2"
 }
     
-class FIA_Attacker(IFGSM_Based_Attacker):
+class FIA_Attacker(Based_Attacker):
     def get_config(arch):
         config = {
             "eps": 16,

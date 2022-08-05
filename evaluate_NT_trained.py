@@ -7,7 +7,7 @@ import torch
 from models import make_model
 from models import get_model_config
 from dataset import make_loader
-from evaluate_AT_trained import evaluate_with_robust_model
+# from evaluate_AT_trained import evaluate_with_robust_model
 
 
 def evaluate_with_natural_model(arch, dataset, cln_dir, adv_dir, total_num):
@@ -22,7 +22,6 @@ def evaluate_with_natural_model(arch, dataset, cln_dir, adv_dir, total_num):
     _, cln_data_loader = make_loader(
         image_dir=cln_dir,
         label_dir=label_dir,
-        phase="cln",
         batch_size=target_model_config[arch],
         total=total_num,
         size=size,
@@ -31,7 +30,6 @@ def evaluate_with_natural_model(arch, dataset, cln_dir, adv_dir, total_num):
     _, adv_data_loader = make_loader(
         image_dir=adv_dir,
         label_dir=label_dir,
-        phase="adv",
         batch_size=target_model_config[arch],
         total=total_num,
         size=size,
@@ -65,9 +63,10 @@ def evaluate_with_natural_model(arch, dataset, cln_dir, adv_dir, total_num):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--gpu-id", type=str, default="3")
-    parser.add_argument("--adver-dir", type=str)
     parser.add_argument("--dataset", type=str, default="ImageNet")
-    parser.add_argument("--clean-dir", type=str, default="../dataset/NIPS_dataset")
+    parser.add_argument("--label-dir", type=str, default="./data/imagenet_class_to_idx.npy")
+    parser.add_argument("--clean-dir", type=str, default="./data")
+    parser.add_argument("--adver-dir", type=str)
     parser.add_argument('--target-model', nargs="+")
     parser.add_argument("--batch-size", type=int)
     parser.add_argument("--total-num", type=int, default=1000)
@@ -96,19 +95,18 @@ if __name__ == "__main__":
 
     acc_list = []
     for target_model_name in args.target_model:
-        if target_model_name == "robust_models":
-            correct_cnt, model_name = evaluate_with_robust_model(args.clean_dir, args.adver_dir)
-            for i in range(len(model_name)):
-                acc = correct_cnt[i] * 100.0 / args.total_num
-                acc_list.append(acc)
-                logger.info(f"{model_name[i]}: {acc:.2f}%")
-
-        else:
-            logger.info(f"Transfer to {target_model_name}..")
-            _, _, suc_rate = evaluate_with_natural_model(target_model_name, args.dataset, args.clean_dir, args.adver_dir, args.total_num)
-            acc_list.append(suc_rate)
-            logger.info(f"Success rate: {suc_rate:.2f}%")
-            logger.info(f"Transfer done.")
+        logger.info(f"Transfer to {target_model_name}..")
+        _, _, suc_rate = evaluate_with_natural_model(
+            target_model_name, 
+            args.dataset, 
+            args.label_dir,
+            args.clean_dir, 
+            args.adver_dir, 
+            args.total_num
+        )
+        acc_list.append(suc_rate)
+        logger.info(f"Success rate: {suc_rate:.2f}%")
+        logger.info(f"Transfer done.")
 
         torch.cuda.empty_cache()
 

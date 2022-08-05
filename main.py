@@ -1,4 +1,3 @@
-import importlib
 import os
 import argparse
 import logging
@@ -36,7 +35,8 @@ def get_args():
     parser.add_argument(
         "--dataset", type=str, default="ImageNet", choices=["ImageNet", "CIFAR10"]
     )
-    parser.add_argument("--input-dir", type=str, default="dataset_1000")
+    parser.add_argument("--label-dir", type=str, default="imagenet_class_to_idx.npy")
+    parser.add_argument("--input-dir", type=str, default="data")
     parser.add_argument("--output-dir", type=str, default="output")
     parser.add_argument("--attack-method", type=str, default="i_fgsm")
     parser.add_argument("--source-model", nargs="+", default="")
@@ -46,7 +46,7 @@ def get_args():
     parser.add_argument(
         "--target",
         action="store_true",
-        help="targeted attack",
+        help="targeted attack, not support yet",
     )
     parser.add_argument("--eps", type=float)
     parser.add_argument("--nb-iter", type=int)
@@ -55,6 +55,7 @@ def get_args():
     parser.add_argument("--nsig", type=int, help="TI-FGSM")
     parser.add_argument("--prob", type=float, help="DI-FGSM")
     parser.add_argument("--decay-factor", type=float, help="MI-FGSM / NI-FGSM")
+    # * SI-FGSM
     parser.add_argument("--scale-copies", type=float, help="SI-FGSM")
     # * VMI-FGSM
     parser.add_argument("--vi-sample-n", type=float, help="VMI-FGSM")
@@ -77,15 +78,10 @@ def get_args():
     parser.add_argument("--ila-layer", type=int, help="ILA")
     parser.add_argument("--step-size-pgd", type=float, help="ILA")
     parser.add_argument("--step-size-ila", type=float, help="ILA")
+    
     parser.add_argument(
         "--not-valid", help="validate adversarial example", action="store_true"
     )
-    parser.add_argument(
-        "--folder-with-label",
-        help="input dataset in folder dataset",
-        action="store_true",
-    )
-
     args = parser.parse_args()
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
@@ -102,8 +98,7 @@ def attack_source_model(arch, args):
     batch_size = args.batch_size
     img_list, data_loader = make_loader(
         image_dir=args.input_dir,
-        label_dir=args.folder_with_label,
-        phase="cln",
+        label_dir=args.label_dir,
         batch_size=batch_size,
         total=args.total_num,
         size=size,
@@ -151,25 +146,24 @@ def main():
     assert set(global_args.target_model).issubset(set(target_model_config.keys()))
 
     white_arguments = [
-        "attack_method",
-        "total_num",
         "target",
         "eps",
         "nb_iter",
         "eps_iter",
     ]
     black_arguments = [
+        "dataset",
+        "attack_method",
+        "label_dir",
         "input_dir",
         "output_dir",
         "source_model",
         "target_model",
-        "print_freq",
         "not_valid",
-        "folder_with_label",
-        "dataset",
         "gpu_id",
+        "total_num",
     ]
-    log_name = [global_args.dataset]
+    log_name = [global_args.attack_method]
     for a in white_arguments:
         v = getattr(global_args, a)
         if v is not None:
@@ -182,11 +176,10 @@ def main():
 
     log_name = "-".join(log_name)
 
-    output_root_dir = os.path.join(global_args.output_dir, log_name)
-    logger_path = os.path.join("output_log", log_name + ".log")
+    output_root_dir = os.path.join(global_args.output_dir, global_args.dataset, log_name)
+    logger_root_dir = os.path.join("output_log", global_args.dataset)
+    logger_path = os.path.join(logger_root_dir, log_name + ".log")
 
-    if not os.path.exists(output_root_dir):
-        os.makedirs(output_root_dir)
     os.makedirs("output_log", exist_ok=True)
     logger = logging.getLogger(__name__)
     logging.basicConfig(
@@ -208,8 +201,7 @@ def main():
 
         # make output dir
         output_dir = os.path.join(output_root_dir, source_model_name)
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
         global_args.output_dir = output_dir
 
         # load config

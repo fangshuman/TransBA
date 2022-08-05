@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+from .config import source_model, target_model
 from . import googlenet 
 from . import vgg
 from . import resnet
@@ -22,7 +23,7 @@ class Wrap(nn.Module):
         self._std = torch.tensor(self.std).view(3,1,1).cuda()
 
     def forward(self, x):
-        return self.model.forward((x - self._mean) / self._std)
+        return self.model((x - self._mean) / self._std)
 
 
 def make_model(arch):      

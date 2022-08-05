@@ -3,8 +3,8 @@ import argparse
 import logging
 
 import numpy as np
-# import tensorflow as tf
-from tensorflow.compat import v1 as tf
+import tensorflow as tf
+# from tensorflow.compat import v1 as tf
 
 from PIL import Image
 
@@ -188,8 +188,8 @@ def evaluate_with_robust_model(cln_dir, input_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--gpu-id", type=str, default="3")
-    parser.add_argument("--input-dir", type=str)
-    parser.add_argument("--cln-dir", type=str)
+    parser.add_argument("--adver-dir", type=str)
+    parser.add_argument("--clean-dir", type=str)
     parser.add_argument("--total-num", type=int, default=1000)
     args = parser.parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
@@ -209,7 +209,7 @@ if __name__ == "__main__":
     )
     logger.info(args)
 
-    correct_cnt, model_name = evaluate_with_robust_model(args.cln_dir, args.input_dir)
+    correct_cnt, model_name = evaluate_with_robust_model(args.clean_dir, args.adver_dir)
     acc_list = []
     for i in range(len(model_name)):
         suc_rate = correct_cnt[i] * 100.0 / args.total_num

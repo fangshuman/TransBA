@@ -1,8 +1,8 @@
-# Transfer Attack Framework
-This repository contains code to reproduce results from some basic transfer attack methods.
+# Transferable Attack Framework
+This repository contains code to reproduce results from some basic transferable attack methods.
 
 
-
+<!-- 
 ## Requirements
 
 + python >= 3.6.5
@@ -11,86 +11,84 @@ This repository contains code to reproduce results from some basic transfer atta
 + pretrainedmodels >= 0.7.4
 + numpy >= 1.19.5
 + scipy > 1.5.4
-
+ -->
 
 
 ## Supported Methods
 
 + I-FGSM 
-+ [TIM](https://arxiv.org/pdf/1904.02884)
-+ [DIM](https://arxiv.org/pdf/1803.06978)
-+ [MI-FGSM](https://arxiv.org/pdf/1710.06081)
-+ [NI-SI-FGSM](https://arxiv.org/pdf/1908.06281) 
-+ [VMI-FGSM](https://arxiv.org/pdf/2103.15571) 
-+ [Patch-wise](https://arxiv.org/pdf/2007.06765)
-+ [SGM](https://arxiv.org/pdf/2002.05990)
-+ [Admix](https://arxiv.org/pdf/2102.00436.pdf)
-+ [FIA](https://arxiv.org/pdf/2107.14185.pdf)
-+ [ILA](https://arxiv.org/pdf/1907.10823)
-
++ [MI-FGSM (CVPR'18)](https://arxiv.org/pdf/1710.06081)
++ [TIM (CVPR'19)](https://arxiv.org/pdf/1904.02884)
++ [DIM (CVPR'19)](https://arxiv.org/pdf/1803.06978)
++ [ILA (ICCV'19)](https://arxiv.org/pdf/1907.10823)
++ [NI-SI-FGSM (ICLR'20)](https://arxiv.org/pdf/1908.06281) 
++ [Patch-wise (ECCV'20)](https://arxiv.org/pdf/2007.06765)
++ [SGM (ICLR'20)](https://arxiv.org/pdf/2002.05990)
++ [VT (CVPR'21)](https://arxiv.org/pdf/2103.15571) 
++ [Admix (ICCV'21)](https://arxiv.org/pdf/2102.00436.pdf)
++ [FIA (ICCV'21)](https://arxiv.org/pdf/2107.14185.pdf)
++ [EMI (arxiv'21)](http://arxiv.org/pdf/2103.10609.pdf)
 
 
 
 ## Quick Start
 
-### Prepare Models
+<!-- ### Prepare Models -->
 
-<!-- #### Data
+### Data
+Run `./select_images.py` to randomly sample one image per class to get images from ImageNet-val dataset,
+and the selected images will be put into the path `data/`.
+```
+python select_images.py \
+        --imagenet-dir ImageNet2012/val \
+        --num-per-cls 1 \
+        --save-dir data
+```
 
-To run code with 1k images from ImageNet you should download [1K Images](https://drive.google.com/drive/folders/1CfobY6i8BfqfWPHL31FKFDipNjqWwAhS) and extrace images to the path `dataset_1000/` while with 5k images, download [5K Images](https://drive.google.com/file/d/1RqDUGs7olVGYqSV_sIlqZRRhB9Mw48vM/view?usp=sharing) and place images into `dataset_5000/` respectively. Make sure the file name format of image is like n01440764_ILSVRC2012_val_00007197.png -->
-
-<!-- #### Pretrainedmodels -->
-
-All pretrained models can be found online: [pretrainedmodels](https://github.com/Cadene/pretrained-models.pytorch)
+### Pretrained Models
+All pretrained models can be found online: [pretrainedmodels](https://github.com/Cadene/pretrained-models.pytorch).
 
 
 ### Run the Code
+Generate adversairal examples and save them into path `./output/`, and the running log will be saved in `./output_log`. 
+This code is to generate adversarial examples on all source models one by one,
+and validate the attack success rate on all target models.
 
-Generate adversairal examples and save them into path `./output/`. The running log will be saved in `./output_log`. This code is to generate adversarial examples using I-FGSM on all source models separately and validate the attack success rate on all target models.
+It will be considered as attacking successfully,
+if the prediction of adversarial example is different from the clean one.
+<!-- And the "y" used during attack process are the predictions of clean images, 
+so the true labels of images are not necessary. -->
 
-If the prediction of adversarial example is different from clean one, it will be considered as attacking successfully.
-And the 'y' used during attack process are the predictions of clean imgaes, so the true labels of images are not necessary.
 
-
-#### About attack method
-
+#### Attack
+If you want test the effectiveness of I-FGSM with `ResNet-50`, `DenseNet-121` as source models and `Inception-v3`, `Inception-v4`, and `Inception-ResNet-v2` as target models, 
+run as follows.
 ```
 python3 main.py \
         --attack-method i_fgsm \
-        --source-model xxx xxx xxx (optional) \
-        --target-model xxx xxx xxx xxx xxx (optinal)
+        --source-model resnet50 densenet121 \
+        --target-model inceptionv3 inceptionv4 inceptionresnetv2
 ```
 
-#### I-FGSM based
+#### Combine Attack Methods
+This code supports combine existing methods with basic attack methods, 
+including MI-FGSM, TIM, and DIM.
+For example,
+run as follows to evaluate the effectiveness of MI+DI+TI.
+```
+python3 main.py \
+        --attack-method mi_di_ti_fgsm
+```
 
-+ I-FGSM:  `--attack-method i_fgsm`
-+ MI-FGSM: `--attack-method mi_fgsm`
-+ DI-FGSM: `--attack-method di_fgsm`
-+ TI-FGSM: `--attack-method ti_fgsm`
-+ combine: `--attack-method mi_di_ti_fgsm`
-  
-#### VMI based
+#### Evaluate
+To evaluate with naturally trained models as target model:
+```
+python3 evaluate_NT_trained.py \
+        --adver-dir path_saved_adversarial_examples
+```
 
-+ VMI-FGSM: `--attack-method vi_mi_fgsm`
-+ combine:  `--attack-method vi_mi_xxx_fgsm`
-
-#### Patch-wise based
-
-+ Patch-wise: `--attack-method pi_fgsm`
-+ combine   : `--attack-method pi_xxx_fgsm`
-
-#### SGM based
-
-+ SGM: `--attack-method sgm`
-+ combine: `--attack-method sgm_xxx`
-
-#### Admix based
-
-+ Admix: `--attack-method admix`
-+ combine: `--attack-method admix_xxx`
-  
-#### FIA based
-
-+ FIA: `--attack-method fia`
-+ combine: `--attack-method fia_xxx`
-
+To evaluate with adversarially trained models as target model:
+```
+python3 evaluate_AT_trained.py \
+        --adver-dir path_saved_adversarial_examples
+```
