@@ -1,4 +1,4 @@
-# Transferable Attack Framework
+# TransBA: Transfer-based Black Attack Framework
 This repository contains code to reproduce results from some basic transferable attack methods.
 
 
