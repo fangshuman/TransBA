@@ -74,10 +74,10 @@ so the true labels of images are not necessary. -->
 If you want test the effectiveness of I-FGSM with `ResNet-50`, `DenseNet-121` as source models and `Inception-v3`, `Inception-v4`, and `Inception-ResNet-v2` as target models, 
 run as follows.
 ```
-python3 main.py \
-        --attack-method i_fgsm \
-        --source-model resnet50 densenet121 \
-        --target-model inceptionv3 inceptionv4 inceptionresnetv2
+python main.py \
+       --attack-method i_fgsm \
+       --source-model resnet50 densenet121 \
+       --target-model inceptionv3 inceptionv4 inceptionresnetv2
 ```
 
 #### Combine Attack Methods
@@ -86,21 +86,21 @@ including MI-FGSM, TIM, and DIM.
 For example,
 run as follows to evaluate the effectiveness of MI+DI+TI.
 ```
-python3 main.py \
-        --attack-method mi_di_ti_fgsm
+python main.py \
+       --attack-method mi_di_ti_fgsm
 ```
 
 #### Evaluate
 To evaluate with naturally trained models as target model:
 ```
-python3 evaluate_NT_trained.py \
-        --adver-dir path_saved_adversarial_examples
+python evaluate_NT_trained.py \
+       --adver-dir <path_saved_adversarial_examples>
 ```
 
 To evaluate with adversarially trained models as target model:
 ```
-python3 evaluate_AT_trained.py \
-        --adver-dir path_saved_adversarial_examples
+python evaluate_AT_trained.py \
+       --adver-dir <path_saved_adversarial_examples>
 ```
 
 
