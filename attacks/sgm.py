@@ -29,7 +29,15 @@ def backward_hook_norm(module, grad_in, grad_out):
 
 class SGM_Attacker(Based_Attacker):
     def get_config(arch):
-        config = super().get_config(arch)
+        config = {
+            "eps": 16,
+            "nb_iter": 10,
+            "eps_iter": 1.6,
+            "prob": 0.5,  
+            "kernlen": 7, 
+            "nsig": 3,
+            "decay_factor": 1.0,
+        }
         config['sgm_gamma'] = get_default_gamma(arch)
         return config
 
@@ -41,9 +49,23 @@ class SGM_Attacker(Based_Attacker):
             args=args,
         )
 
+        self.default_value = {
+            # basic default value
+            "eps": 0.05,
+            "nb_iter": 10,
+            "eps_iter": 0.005,
+            "target": False,
+            "prob": 0.5,
+            "kernlen": 7,
+            "nsig": 3,
+            "decay_factor": 1.0,
+            # for SGM
+            "sgm_gamma": get_default_gamma(model.model_name),
+        }
         for k, v in self.default_value.items():
             self.load_params(k, v, args)
 
+        self.arch = model.model_name
         self.register_hook()
 
 

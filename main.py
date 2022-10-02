@@ -35,7 +35,7 @@ def get_args():
     parser.add_argument(
         "--dataset", type=str, default="ImageNet", choices=["ImageNet", "CIFAR10"]
     )
-    parser.add_argument("--label-dir", type=str, default="imagenet_class_to_idx.npy")
+    parser.add_argument("--label-dir", type=str, default="data/imagenet_class_to_idx.npy")
     parser.add_argument("--input-dir", type=str, default="data")
     parser.add_argument("--output-dir", type=str, default="output")
     parser.add_argument("--attack-method", type=str, default="i_fgsm")
@@ -55,19 +55,22 @@ def get_args():
     parser.add_argument("--nsig", type=int, help="TI-FGSM")
     parser.add_argument("--prob", type=float, help="DI-FGSM")
     parser.add_argument("--decay-factor", type=float, help="MI-FGSM / NI-FGSM")
-    # * SI-FGSM
+    # * NI-SI-FGSM
     parser.add_argument("--scale-copies", type=float, help="SI-FGSM")
-    # * VMI-FGSM
-    parser.add_argument("--vi-sample-n", type=float, help="VMI-FGSM")
-    parser.add_argument("--vi-sample-beta", type=float, help="VMI-FGSM")
+    # * EMI
+    parser.add_argument("--emi-sampling-interval", type=float, help="EMI")
+    parser.add_argument("--emi-sampling-number", type=float, help="EMI")
+    # * VMI
+    parser.add_argument("--vmi-sample-n", type=float, help="VMI")
+    parser.add_argument("--vmi-sample-beta", type=float, help="VMI")
     # * PI-FGSM (Patch-wise Attack)
     parser.add_argument("--pi-beta", type=float, help="Patch-wise Attack")
     parser.add_argument("--pi-gamma", type=float, help="Patch-wise Attack")
     parser.add_argument("--pi-kern-size", type=float, help="Patch-wise Attack")
     # * Admix
-    parser.add_argument("--admix-m1", type=float, help="Patch-wise Attack")
-    parser.add_argument("--admix-m2", type=float, help="Patch-wise Attack")
-    parser.add_argument("--admix-portion", type=float, help="Patch-wise Attack")
+    parser.add_argument("--admix-m1", type=float, help="Admix")
+    parser.add_argument("--admix-m2", type=float, help="Admix")
+    parser.add_argument("--admix-portion", type=float, help="Admix")
     # * SGM (Skip Connections Matter)
     parser.add_argument("--sgm-gamma", type=float, help="SGM")
     # * FIA (Feature Importance-aware Attack)
@@ -242,6 +245,7 @@ def main():
                     cln_acc, adv_acc, suc_rate = evaluate_with_natural_model(
                         target_model_name,
                         args.dataset,
+                        args.label_dir,
                         args.input_dir,
                         args.output_dir,
                         args.total_num,

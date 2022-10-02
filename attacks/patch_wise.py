@@ -88,13 +88,10 @@ class Patchwise_Attacker(Attack):
 
             # Gaussian kernel: TI-FGSM
             if "ti" in self.attack_method:
-                # grad = F.conv2d(grad, kernel, padding=self.kernlen // 2)
-                # grad = F.conv2d(grad, kernel, padding=(self.kernlen//2, self.kernlen//2), groups=3)
-                grad = self.kernel_conv(grad, ti_kernel, kern_size=(self.kernlen//2, self.kernlen//2), groups=3)
+                grad = self.kernel_conv(grad, ti_kernel, kern_size=self.kernlen//2, groups=3)
 
             # momentum: MI-FGSM / NI-FGSM
             if "mi" in self.attack_method or "ni" in self.attack_method:
-                # g = self.decay_factor * g + normalize_by_pnorm(grad, p=1)
                 g = self.decay_factor * g + grad / torch.abs(grad).mean([1,2,3], keepdim=True)
                 grad = g
                 

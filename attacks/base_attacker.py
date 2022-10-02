@@ -65,7 +65,7 @@ class Based_Attacker(Attack):
         # Gaussian kernel: TI-FGSM
         if "ti" in self.attack_method:
             # grad = F.conv2d(grad, kernel, padding=(self.kernlen//2, self.kernlen//2), groups=3)
-            grad = self.kernel_conv(grad, self.kernel, kern_size=(self.kernlen//2, self.kernlen//2), groups=3)
+            grad = self.kernel_conv(grad, self.kernel, kern_size=self.kernlen//2, groups=3)
 
         # momentum: MI-FGSM
         if "mi" in self.attack_method:
@@ -90,7 +90,7 @@ class Based_Attacker(Attack):
             loss.backward()
 
             grad = delta.grad.data
-            grad = self.gradient_process(x, y, grad=grad)
+            grad = self.gradient_process(img_x, y, grad=grad)
 
             grad_sign = grad.data.sign()
             delta.data = delta.data + self.eps_iter * grad_sign

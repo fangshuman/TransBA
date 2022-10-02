@@ -69,9 +69,9 @@ class Admix_Attacker(Based_Attacker):
         eps_iter = self.eps_iter
 
         # initialize extra var
-        if "ti" in self.attack_method:
-            kernel = self.get_Gaussian_kernel(x, kernlen=self.kernlen, nsig=self.nsig)
-        if "mi" in self.attack_method or "ni" in self.attack_method: 
+        if "ti" in self.attack_method.split("_"):
+            kernel = self.get_Gaussian_kernel(kernlen=self.kernlen, nsig=self.nsig)
+        if "mi" in self.attack_method.split("_") or "ni" in self.attack_method.split("_"): 
             g = torch.zeros_like(x)
 
         delta = torch.zeros_like(x)
@@ -92,7 +92,7 @@ class Admix_Attacker(Based_Attacker):
                     for si in range(self.admix_m1)
                 ], dim=0)
 
-                if "di" in self.attack_method:
+                if "di" in self.attack_method.split("_"):
                     x_batch = self.input_diversity(x_batch)
 
                 outputs = self.model(x_batch)
@@ -105,11 +105,12 @@ class Admix_Attacker(Based_Attacker):
                 delta.grad.data.zero_()
         
             # Gaussian kernel: TI-FGSM
-            if "ti" in self.attack_method:
-                grad = F.conv2d(grad, kernel, padding=self.kernlen // 2)
+            if "ti" in self.attack_method.split("_"):
+                grad = self.kernel_conv(grad, kernel, kern_size=self.kernlen//2, groups=3)
 
             # momentum: MI-FGSM / NI-FGSM
-            if "mi" in self.attack_method or "ni" in self.attack_method:
+            if "mi" in self.attack_method.split("_") or "ni" in self.attack_method.split("_"):
+                # import ipdb; ipdb.set_trace()
                 g = self.decay_factor * g + grad / torch.abs(grad).sum([1,2,3], keepdim=True)
                 grad = g
 

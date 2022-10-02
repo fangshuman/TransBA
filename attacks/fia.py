@@ -12,7 +12,7 @@ layer_name_map = {
     "inceptionv3": "Mixed_5b",
     "inceptionresnetv2": "conv2d_4a",
     "vgg16": "_features.15",
-    "resnet152": "layer4.2"
+    "resnet152": "layer3.1",  # we find the performance using layer3.1 is much better than layer4.1 (paper used)
 }
     
 class FIA_Attacker(Based_Attacker):
@@ -49,13 +49,6 @@ class FIA_Attacker(Based_Attacker):
             "prob": 0.5,
             "kernlen": 7,
             "nsig": 3,
-            "decay_factor": 1.0,
-            "scale_copies": 5,
-            "vi_sample_n": 20,
-            "vi_sample_beta": 1.5,
-            "pi_beta": 10,
-            "pi_gamma": 16,
-            "pi_kern_size": 3,
             # for FIA
             "fia_ens": 30,
             "fia_probb": 0.9,
@@ -82,27 +75,26 @@ class FIA_Attacker(Based_Attacker):
             self.__dict__[key] = value
 
     def perturb(self, x, y):
+        super().init_process(x)
         feature_weights = self.get_feature_weights(x, y)
         # return super().perturb(x, y)
-
-        eps_iter = self.eps_iter
 
         delta = torch.zeros_like(x)
         delta.requires_grad_()
 
         for i in range(self.nb_iter):
-            img_x = x
-            outputs = self.model(img_x + delta)
+            img_x = x + delta
+            img_x = self.inputs_process(img_x)
 
+            outputs = self.model(img_x)
             loss = self.get_loss(feature_weights)
-            if self.target:
-                loss = -loss
-
             loss.backward()
+
             grad = delta.grad.data
+            grad = self.gradient_process(x, y, grad=grad)
 
             grad_sign = grad.data.sign()
-            delta.data = delta.data + eps_iter * grad_sign
+            delta.data = delta.data + self.eps_iter * grad_sign
             delta.data = torch.clamp(delta.data, -self.eps, self.eps)
             delta.data = torch.clamp(x.data + delta, 0.0, 1.0) - x
 
@@ -117,10 +109,14 @@ class FIA_Attacker(Based_Attacker):
 
     def register_bp_hook(self, module, grad_in, grad_out):
         self.mediate_grad = torch.cat(grad_in, 1)
+        # self.mediate_grad = grad_in[0].data.clone()
+        # self.mediate_grad_out = grad_out[0].data.clone()
 
     def get_feature_weights(self, x, y):
+        # import ipdb; ipdb.set_trace()
         mediate_module = None
         for name, module in self.model.model.named_modules():
+            # print(name)
             if name == self.fia_opt_layer:
                 mediate_module = module
                 break
@@ -140,7 +136,7 @@ class FIA_Attacker(Based_Attacker):
 
             loss = F.cross_entropy(outputs, y)
             loss.backward()
-
+            
             weights += self.mediate_grad
         
         # import ipdb; ipdb.set_trace()
@@ -153,5 +149,6 @@ class FIA_Attacker(Based_Attacker):
         #     import ipdb; ipdb.set_trace()
         #     loss += (med_out*weights).sum() / med_out.view(-1).shape[0]
         # return loss / len(self.mediate_output)
+        # import ipdb; ipdb.set_trace()
         return (self.mediate_output*weights).sum() / self.mediate_output.view(-1).shape[0]
         

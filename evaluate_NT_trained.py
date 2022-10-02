@@ -10,14 +10,14 @@ from dataset import make_loader
 # from evaluate_AT_trained import evaluate_with_robust_model
 
 
-def evaluate_with_natural_model(arch, dataset, cln_dir, adv_dir, total_num):
+def evaluate_with_natural_model(arch, dataset, label_dir, cln_dir, adv_dir, total_num):
     target_model_config = get_model_config(dataset, is_source=False)
 
     model = make_model(arch=arch, dataset=dataset)
     size = model.input_size[1]
     model = model.cuda()
 
-    label_dir = "TrueLabel.npy" if dataset == "ImageNet" else "cifar10_class_to_idx.npy"
+    # label_dir = "TrueLabel.npy" if dataset == "ImageNet" else "cifar10_class_to_idx.npy"
 
     _, cln_data_loader = make_loader(
         image_dir=cln_dir,
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     parser.add_argument("--label-dir", type=str, default="./data/imagenet_class_to_idx.npy")
     parser.add_argument("--clean-dir", type=str, default="./data")
     parser.add_argument("--adver-dir", type=str)
-    parser.add_argument('--target-model', nargs="+")
+    parser.add_argument('--target-model', nargs="+", default="")
     parser.add_argument("--batch-size", type=int)
     parser.add_argument("--total-num", type=int, default=1000)
     args = parser.parse_args()
