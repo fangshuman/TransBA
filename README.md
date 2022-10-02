@@ -114,6 +114,7 @@ Here we unify all parameters.
 
 ### source model: VGG16
 + The results for existing attack methods
+
 |            | VGG16 | RN152 | IncV3 | IncV4 | IncResV2 |
 |------------|:-----:|:-----:|:-----:|:-----:|:--------:|
 | I-FGSM     |  99.7 |  27.7 |  24.1 |  31.7 |   18.2   |
@@ -129,6 +130,7 @@ Here we unify all parameters.
 | EMI        | 100.0 |  59.6 |  59.6 |  65.7 |   51.8   |
 
 + The results of combination of existing methods with DI, TI, and MI (i.e., DTM). Note that VMI and EMI have contained momentum (MI).
+
 |             | VGG16 | RN152 | IncV3 | IncV4 | IncResV2 |
 |------------ |:-----:|:-----:|:-----:|:-----:|:--------:|
 | MI-DI       |  99.7 |  58.9 |  64.7 |  66.4 |   52.5   |
@@ -145,6 +147,7 @@ Here we unify all parameters.
 
 ### source model: ResNet-152
 + The results for existing attack methods
+
 |            | VGG16 | RN152 | IncV3 | IncV4 | IncResV2 |
 |------------|:-----:|:-----:|:-----:|:-----:|:--------:|
 | I-FGSM     |  43.4 |  99.9 |  27.4 |  22.6 |   24.0   |
@@ -160,6 +163,7 @@ Here we unify all parameters.
 | EMI        |  84.4 | 100.0 |  71.4 |  64.9 |   68.1   |
 
 + The results of combination of existing methods with DI, TI, and MI (i.e., DTM). Note that VMI and EMI have contained momentum (MI).
+
 |             | VGG16 | RN152 | IncV3 | IncV4 | IncResV2 |
 |------------ |:-----:|:-----:|:-----:|:-----:|:--------:|
 | MI-DI       |  83.2 | 100.0 |  76.8 |  72.8 |   71.7   |
@@ -176,6 +180,7 @@ Here we unify all parameters.
 
 ### source model: InceptionV3
 + The results for existing attack methods
+
 |            | VGG16 | RN152 | IncV3 | IncV4 | IncResV2 |
 |------------|:-----:|:-----:|:-----:|:-----:|:--------:|
 | I-FGSM     |  28.3 |  17.5 | 100.0 |  26.8 |   24.0   |
@@ -191,6 +196,7 @@ Here we unify all parameters.
 | EMI        |  68.3 |  48.5 | 100.0 |  66.4 |   66.7   |
 
 + The results of combination of existing methods with DI, TI, and MI (i.e., DTM). Note that VMI and EMI have contained momentum (MI).
+
 |             | VGG16 | RN152 | IncV3 | IncV4 | IncResV2 |
 |------------ |:-----:|:-----:|:-----:|:-----:|:--------:|
 | MI-DI       |  65.1 |  53.6 |  99.8 |  68.2 |   65.8   |
@@ -207,6 +213,7 @@ Here we unify all parameters.
 
 ### source model: InceptionV4
 + The results for existing attack methods
+
 |            | VGG16 | RN152 | IncV3 | IncV4 | IncResV2 |
 |------------|:-----:|:-----:|:-----:|:-----:|:--------:|
 | I-FGSM     |  32.2 |  15.4 |  27.1 |  99.9 |   22.3   |
@@ -222,6 +229,7 @@ Here we unify all parameters.
 | EMI        |  71.1 |  44.8 |  67.0 | 100.0 |   62.6   |
 
 + The results of combination of existing methods with DI, TI, and MI (i.e., DTM). Note that VMI and EMI have contained momentum (MI).
+
 |             | VGG16 | RN152 | IncV3 | IncV4 | IncResV2 |
 |------------ |:-----:|:-----:|:-----:|:-----:|:--------:|
 | MI-DI       |  68.3 |  49.8 |  70.5 |  97.9 |   65.3   |
@@ -238,6 +246,7 @@ Here we unify all parameters.
 
 ### source model: InceptionResNetV2
 + The results for existing attack methods
+
 |            | VGG16 | RN152 | IncV3 | IncV4 | IncResV2 |
 |------------|:-----:|:-----:|:-----:|:-----:|:--------:|
 | I-FGSM     |  30.0 |  17.7 |  29.5 |  26.8 |   97.9   |
@@ -253,6 +262,7 @@ Here we unify all parameters.
 | EMI        |  70.0 |  51.0 |  69.9 |  65.9 |   99.5   |
 
 + The results of combination of existing methods with DI, TI, and MI (i.e., DTM). Note that VMI and EMI have contained momentum (MI).
+
 |             | VGG16 | RN152 | IncV3 | IncV4 | IncResV2 |
 |------------ |:-----:|:-----:|:-----:|:-----:|:--------:|
 | MI-DI       |  63.7 |  53.8 |  68.2 |  64.2 |   94.5   |
